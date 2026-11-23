@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <!-- Cấu hình chế độ Web App toàn màn hình trên iPhone -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PSA Tracker">
+    <meta name="theme-color" content="#F2F2F7">
+    <title>PSA Tracker Pro - Quản Lý Gửi Chấm Thẻ</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        ios: {
+                            bg: '#F2F2F7',
+                            card: '#FFFFFF',
+                            separator: '#C6C6C8',
+                            blue: '#007AFF',
+                            red: '#FF3B30',
+                            green: '#34C759',
+                            orange: '#FF9500',
+                            purple: '#AF52DE',
+                            gray: '#8E8E93',
+                            lightGray: '#E5E5EA'
+                        },
+                        psa: {
+                            red: '#D32F2F',
+                            blue: '#1565C0'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Tối ưu trải nghiệm cảm ứng chuẩn iOS */
+        * {
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+        body {
+            background-color: #F2F2F7;
+            color: #1C1C1E;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: calc(85px + env(safe-area-inset-bottom));
+            overscroll-behavior-y: none;
+        }
+        /* Ngăn iOS tự động zoom khi chạm vào ô input */
+        input, select, textarea {
+            font-size: 16px !important;
+        }
+        /* Ẩn thanh cuộn nhưng vẫn cho phép vuốt */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        /* Hiệu ứng trượt Bottom Sheet */
+        .bottom-sheet-backdrop {
+            transition: opacity 0.25s ease;
+        }
+        .bottom-sheet-panel {
+            transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+            padding-bottom: calc(20px + env(safe-area-inset-bottom));
+        }
+        .bottom-tab-bar {
+            padding-bottom: env(safe-area-inset-bottom);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            background-color: rgba(255, 255, 255, 0.88);
+        }
+        .ios-header {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            background-color: rgba(242, 242, 247, 0.85);
+            padding-top: max(12px, env(safe-area-inset-top));
+        }
+    </style>
+</head>
+<body class="antialiased select-none">
+
+    <!-- ================= HEADER CỐ ĐỊNH ================= -->
+    <header class="ios-header sticky top-0 z-30 border-b border-gray-200/80 px-4 pb-3">
+        <div class="max-w-lg mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-psa-red to-red-700 flex items-center justify-center text-white font-black text-xs tracking-tighter shadow-sm">
+                    PSA
+                </div>
+                <div>
+                    <h1 id="headerTitle" class="text-lg font-bold tracking-tight text-gray-900 leading-tight">Danh Sách Thẻ</h1>
+                    <p id="headerSubtitle" class="text-xs text-gray-500 font-medium">Tỷ giá: 1¥ = <span id="headerRateDisplay">168</span>₫</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <!-- Nút chuyển đổi hiển thị tiền tệ nhanh -->
+                <button onclick="toggleCurrencyDisplay()" id="currencyToggleBtn" class="px-3 py-1.5 rounded-full bg-white border border-gray-200 text-xs font-bold text-gray-700 shadow-sm active:scale-95 transition">
+                    ¥ JPY
+                </button>
+                <!-- Nút thêm thẻ mới -->
+                <button onclick="openCardModal()" class="w-9 h-9 rounded-full bg-ios-blue text-white flex items-center justify-center shadow-sm active:scale-95 transition" aria-label="Thêm thẻ">
+                    <i class="fa-solid fa-plus text-base"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ================= NỘI DUNG CHÍNH ================= -->
+    <main class="max-w-lg mx-auto px-4 pt-3">
+
+        <!-- ==================== TAB 1: DANH SÁCH THẺ ==================== -->
+        <section id="tab-cards" class="space-y-4">
+            
+            <!-- Chọn Đợt Gửi (Submission Batch Selector) -->
+            <div class="flex items-center gap-2">
+                <div class="relative flex-1">
+                    <select id="batchFilterSelect" onchange="handleBatchChange(this.value)" class="w-full appearance-none bg-white border border-gray-200/80 rounded-2xl py-2.5 pl-3.5 pr-9 font-semibold text-sm text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-ios-blue/30">
+                        <option value="ALL">📦 Tất cả đợt gửi</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down text-xs text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                </div>
+                <button onclick="switchTab('batches')" class="px-3.5 py-2.5 bg-white border border-gray-200/80 rounded-2xl text-xs font-semibold text-ios-blue shadow-sm active:scale-95 transition whitespace-nowrap">
+                    + Đợt mới
+                </button>
+            </div>
+
+            <!-- Dashboard Tổng Quan Tài Chính & Số Lượng -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                    <div>
+                        <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Tổng thẻ quản lý</p>
+                        <div class="flex items-baseline gap-2 mt-0.5">
+                            <span id="statTotalCards" class="text-2xl font-extrabold text-gray-900">0</span>
+                            <span class="text-xs font-medium text-gray-500">thẻ (<span id="statCompletedCards">0</span> xong)</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Lợi nhuận ròng dự kiến</p>
+                        <p id="statNetProfit" class="text-xl font-extrabold text-ios-green mt-0.5">¥0</p>
+                        <p id="statNetProfitSub" class="text-[11px] font-medium text-gray-400">0 ₫</p>
+                    </div>
+                </div>
+
+                <!-- Chi phí & Doanh thu -->
+                <div class="grid grid-cols-2 gap-3 pt-0.5">
+                    <div class="bg-gray-50/80 rounded-xl p-2.5">
+                        <div class="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
+                            <span class="w-2 h-2 rounded-full bg-psa-red"></span>
+                            Tổng chi phí PSA
+                        </div>
+                        <p id="statTotalCost" class="text-sm font-bold text-gray-900 mt-1">¥0</p>
+                        <p id="statTotalCostSub" class="text-[11px] text-gray-400">Gồm phí ship/lô</p>
+                    </div>
+                    <div class="bg-gray-50/80 rounded-xl p-2.5">
+                        <div class="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
+                            <span class="w-2 h-2 rounded-full bg-ios-blue"></span>
+                            Tổng thu từ khách
+                        </div>
+                        <p id="statTotalRevenue" class="text-sm font-bold text-gray-900 mt-1">¥0</p>
+                        <p id="statTotalRevenueSub" class="text-[11px] text-gray-400">Chưa tính thẻ cá nhân</p>
+                    </div>
+                </div>
+
+                <!-- Thống kê nhanh 4 trạng thái -->
+                <div class="grid grid-cols-4 gap-1.5 pt-1 text-center">
+                    <div onclick="quickFilterStatus('preparing')" class="bg-amber-50/80 rounded-xl py-2 px-1 cursor-pointer active:scale-95 transition">
+                        <p id="countPreparing" class="text-sm font-bold text-amber-600">0</p>
+                        <p class="text-[10px] font-medium text-amber-800/80 truncate">Chuẩn bị</p>
+                    </div>
+                    <div onclick="quickFilterStatus('shipped')" class="bg-blue-50/80 rounded-xl py-2 px-1 cursor-pointer active:scale-95 transition">
+                        <p id="countShipped" class="text-sm font-bold text-blue-600">0</p>
+                        <p class="text-[10px] font-medium text-blue-800/80 truncate">Đã gửi</p>
+                    </div>
+                    <div onclick="quickFilterStatus('grading')" class="bg-purple-50/80 rounded-xl py-2 px-1 cursor-pointer active:scale-95 transition">
+                        <p id="countGrading" class="text-sm font-bold text-purple-600">0</p>
+                        <p class="text-[10px] font-medium text-purple-800/80 truncate">Đang chấm</p>
+                    </div>
+                    <div onclick="quickFilterStatus('done')" class="bg-emerald-50/80 rounded-xl py-2 px-1 cursor-pointer active:scale-95 transition">
+                        <p id="countDone" class="text-sm font-bold text-emerald-600">0</p>
+                        <p class="text-[10px] font-medium text-emerald-800/80 truncate">Hoàn thành</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Thanh Tìm Kiếm & Bộ Lọc -->
+            <div class="space-y-2.5">
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass text-gray-400 text-sm absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                    <input type="text" id="searchInput" oninput="renderCards()" placeholder="Tìm tên thẻ, mã (s12a 212), khách hàng..." class="w-full bg-white border border-gray-200/80 rounded-2xl py-2.5 pl-10 pr-9 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ios-blue/30">
+                    <button id="clearSearchBtn" onclick="clearSearch()" class="hidden text-gray-400 hover:text-gray-600 absolute right-3 top-1/2 -translate-y-1/2 p-1">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Filter Pills: Trạng thái & Hệ thẻ -->
+                <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                    <select id="statusFilterSelect" onchange="renderCards()" class="bg-white border border-gray-200/80 rounded-full px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm focus:outline-none">
+                        <option value="ALL">Trạng thái: Tất cả</option>
+                        <option value="preparing">🟡 Chuẩn bị / Soi thẻ</option>
+                        <option value="shipped">🔵 Đã gửi đi PSA</option>
+                        <option value="grading">🟣 Đang chấm tại PSA</option>
+                        <option value="graded">🟢 Đã có điểm / Về tay</option>
+                        <option value="returned">✅ Đã trả khách</option>
+                    </select>
+
+                    <select id="tcgFilterSelect" onchange="renderCards()" class="bg-white border border-gray-200/80 rounded-full px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm focus:outline-none">
+                        <option value="ALL">Hệ thẻ: Tất cả</option>
+                        <option value="Pokémon">Pokémon</option>
+                        <option value="One Piece">One Piece</option>
+                        <option value="Yu-Gi-Oh!">Yu-Gi-Oh!</option>
+                        <option value="Dragon Ball">Dragon Ball</option>
+                        <option value="Khác">Khác</option>
+                    </select>
+
+                    <button id="resetFilterBtn" onclick="resetFilters()" class="hidden px-3 py-1.5 rounded-full bg-red-50 text-psa-red text-xs font-semibold whitespace-nowrap">
+                        Xóa lọc
+                    </button>
+                </div>
+            </div>
+
+            <!-- Danh sách thẻ -->
+            <div id="cardsListContainer" class="space-y-3 pb-4">
+                <!-- Cards được render tự động bằng JS -->
+            </div>
+        </section>
+
+        <!-- ==================== TAB 2: TÍNH CHI PHÍ & LÔ GỬI ==================== -->
+        <section id="tab-batches" class="hidden space-y-4 pb-6">
+            
+            <!-- Công cụ quy đổi tiền tệ nhanh JPY <-> VND -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-sm font-bold text-gray-900 flex items-center gap-2">
+                        <i class="fa-solid fa-Calculator text-ios-blue"></i> Quy đổi nhanh JPY ⇄ VNĐ
+                    </h2>
+                    <div class="flex items-center gap-1.5 bg-gray-100 px-2.5 py-1 rounded-lg">
+                        <span class="text-xs text-gray-500">Tỷ giá:</span>
+                        <input type="number" id="exchangeRateInput" onchange="updateExchangeRate(this.value)" class="w-14 bg-transparent text-right font-bold text-xs text-gray-900 focus:outline-none" value="168">
+                        <span class="text-xs text-gray-500">₫</span>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[11px] font-medium text-gray-500 block mb-1">Số tiền Yên Nhật (¥)</label>
+                        <input type="number" id="quickJpyInput" oninput="convertQuickCurrency('JPY')" placeholder="VD: 3300" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 font-bold text-gray-900 focus:outline-none focus:border-ios-blue">
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-medium text-gray-500 block mb-1">Tiền Việt Nam (₫)</label>
+                        <input type="number" id="quickVndInput" oninput="convertQuickCurrency('VND')" placeholder="VD: 554400" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 font-bold text-ios-blue focus:outline-none focus:border-ios-blue">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quản lý các đợt gửi (Submission Batches) -->
+            <div class="flex items-center justify-between pt-1">
+                <h2 class="text-base font-bold text-gray-900">Các Đợt Gửi (Batches)</h2>
+                <button onclick="openBatchModal()" class="px-3.5 py-1.5 bg-ios-blue text-white rounded-full text-xs font-bold shadow-sm active:scale-95 transition">
+                    + Tạo đợt gửi
+                </button>
+            </div>
+            <p class="text-xs text-gray-500 -mt-2">Nhập phí ship, bảo hiểm, upcharge cho từng đợt để hệ thống tự động chia đều chi phí vào từng thẻ.</p>
+
+            <div id="batchesListContainer" class="space-y-3">
+                <!-- Danh sách đợt gửi render bằng JS -->
+            </div>
+        </section>
+
+        <!-- ==================== TAB 3: CÀI ĐẶT & SAO LƯU ==================== -->
+        <section id="tab-settings" class="hidden space-y-4 pb-6">
+            
+            <!-- Thống kê lưu trữ & Dữ liệu mẫu -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+                <h2 class="text-sm font-bold text-gray-900">Quản lý dữ liệu ứng dụng</h2>
+                <p class="text-xs text-gray-500 leading-relaxed">
+                    Toàn bộ dữ liệu được lưu trực tiếp trong bộ nhớ trình duyệt Safari trên iPhone của bạn. Hãy thường xuyên xuất file sao lưu để tránh mất dữ liệu khi xóa lịch sử trình duyệt.
+                </p>
+
+                <div class="grid grid-cols-1 gap-2.5 pt-2">
+                    <button onclick="exportJSON()" class="w-full flex items-center justify-between bg-blue-50/80 hover:bg-blue-100/80 text-ios-blue font-semibold px-4 py-3 rounded-xl transition active:scale-[0.99]">
+                        <span class="flex items-center gap-2.5 text-sm">
+                            <i class="fa-solid fa-file-export"></i> Xuất bản sao lưu (.JSON)
+                        </span>
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </button>
+
+                    <button onclick="exportCSV()" class="w-full flex items-center justify-between bg-emerald-50/80 hover:bg-emerald-100/80 text-emerald-700 font-semibold px-4 py-3 rounded-xl transition active:scale-[0.99]">
+                        <span class="flex items-center gap-2.5 text-sm">
+                            <i class="fa-solid fa-file-excel"></i> Xuất bảng tính Excel / Sheets (.CSV)
+                        </span>
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </button>
+
+                    <label class="w-full flex items-center justify-between bg-gray-100 hover:bg-gray-200/80 text-gray-800 font-semibold px-4 py-3 rounded-xl transition cursor-pointer active:scale-[0.99]">
+                        <span class="flex items-center gap-2.5 text-sm">
+                            <i class="fa-solid fa-file-import"></i> Khôi phục từ file (.JSON)
+                        </span>
+                        <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+                        <input type="file" id="importJsonInput" accept=".json" onchange="importJSON(event)" class="hidden">
+                    </label>
+                </div>
+            </div>
+
+            <!-- Xuất & Đồng Bộ Google Sheets ("Chấm PSA") -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-sm font-bold text-gray-900 flex items-center gap-2">
+                        <i class="fa-solid fa-table text-emerald-600"></i> Xuất ra Google Sheets
+                    </h2>
+                    <span class="text-[11px] font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">2 Cách</span>
+                </div>
+
+                <!-- Cách 1: Copy TSV & Mở sheets.new -->
+                <div class="bg-emerald-50/60 border border-emerald-100 rounded-xl p-3 space-y-2">
+                    <p class="text-xs font-bold text-emerald-900">Cách 1: Dán nhanh 1 chạm (Không cần cài đặt)</p>
+                    <p class="text-[11px] text-emerald-800/80 leading-relaxed">
+                        Tự động sao chép toàn bộ bảng thẻ và mở trang tạo Google Sheet mới. Bạn chỉ cần chạm vào ô <strong>A1</strong> và chọn <strong>Dán (Paste)</strong> là tự chia đúng từng cột.
+                    </p>
+                    <button onclick="exportAndOpenGoogleSheets()" class="w-full py-2.5 px-3 bg-emerald-600 text-white font-bold rounded-xl text-xs shadow-sm flex items-center justify-center gap-2 active:scale-[0.99] transition">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i> Xuất & Mở Google Sheets
+                    </button>
+                </div>
+
+                <!-- Cách 2: Đồng bộ tự động qua Apps Script Webhook -->
+                <div class="bg-gray-50 border border-gray-200/80 rounded-xl p-3 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <p class="text-xs font-bold text-gray-800">Cách 2: Đồng bộ tự động (Webhook)</p>
+                        <button onclick="openScriptModal()" class="text-[11px] font-bold text-ios-blue underline">
+                            Xem mã Apps Script mẫu
+                        </button>
+                    </div>
+                    <p class="text-[11px] text-gray-500 leading-relaxed">
+                        Dán đường link Web App từ file Google Sheet <strong>"Chấm PSA"</strong> của bạn để đẩy dữ liệu thẳng lên bảng tính chỉ bằng 1 chạm.
+                    </p>
+                    <div class="space-y-2">
+                        <input type="url" id="gsWebhookInput" onchange="saveWebhookUrl(this.value)" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-ios-blue">
+                        <button id="pushGsBtn" onclick="pushToGoogleSheets()" class="w-full py-2.5 px-3 bg-ios-blue text-white font-bold rounded-xl text-xs shadow-sm flex items-center justify-center gap-2 active:scale-[0.99] transition">
+                            <i class="fa-solid fa-cloud-arrow-up"></i> Đẩy dữ liệu lên Google Sheets
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dữ liệu mẫu & Reset -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+                <h2 class="text-sm font-bold text-gray-900">Dữ liệu mẫu & Đặt lại</h2>
+                <div class="space-y-2.5">
+                    <button onclick="removeSampleData()" class="w-full flex items-center justify-between bg-amber-50 text-amber-700 font-semibold px-4 py-3 rounded-xl text-sm active:scale-[0.99] transition">
+                        <span><i class="fa-solid fa-broom mr-2"></i> Xóa các thẻ dữ liệu mẫu</span>
+                        <span id="sampleCountBadge" class="text-xs bg-amber-200/70 px-2 py-0.5 rounded-full">0 mẫu</span>
+                    </button>
+
+                    <button onclick="confirmResetAll()" class="w-full flex items-center justify-between bg-red-50 text-psa-red font-semibold px-4 py-3 rounded-xl text-sm active:scale-[0.99] transition">
+                        <span><i class="fa-solid fa-trash-can mr-2"></i> Xóa toàn bộ dữ liệu ứng dụng</span>
+                        <i class="fa-solid fa-triangle-exclamation text-xs"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Hướng dẫn cài đặt lên màn hình chính iPhone -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-2">
+                <h2 class="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    <i class="fa-brands fa-apple text-lg"></i> Mẹo dùng như App độc lập trên iPhone
+                </h2>
+                <ol class="text-xs text-gray-600 space-y-1.5 list-decimal pl-4 leading-relaxed">
+                    <li>Mở trang web này bằng trình duyệt <strong>Safari</strong> trên iPhone.</li>
+                    <li>Chạm vào biểu tượng <strong>Chia sẻ (Share)</strong> ở thanh dưới cùng.</li>
+                    <li>Chọn <strong>Thêm vào MH chính (Add to Home Screen)</strong>.</li>
+                    <li>Mở ứng dụng từ màn hình chính để trải nghiệm toàn màn hình không thanh địa chỉ.</li>
+                </ol>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ================= THANH ĐIỀU HƯỚNG DƯỚI CÙNG (BOTTOM TAB BAR) ================= -->
+    <nav class="bottom-tab-bar fixed bottom-0 left-0 right-0 z-30 border-t border-gray-200/90">
+        <div class="max-w-lg mx-auto grid grid-cols-3 h-16">
+            <button onclick="switchTab('cards')" id="nav-cards" class="flex flex-col items-center justify-center gap-1 text-ios-blue transition">
+                <i class="fa-solid fa-layer-group text-lg"></i>
+                <span class="text-[10px] font-semibold">Danh sách thẻ</span>
+            </button>
+            <button onclick="switchTab('batches')" id="nav-batches" class="flex flex-col items-center justify-center gap-1 text-gray-400 transition">
+                <i class="fa-solid fa-boxes-packing text-lg"></i>
+                <span class="text-[10px] font-semibold">Chi phí & Lô gửi</span>
+            </button>
+            <button onclick="switchTab('settings')" id="nav-settings" class="flex flex-col items-center justify-center gap-1 text-gray-400 transition">
+                <i class="fa-solid fa-gear text-lg"></i>
+                <span class="text-[10px] font-semibold">Sao lưu & Cài đặt</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ================= BOTTOM SHEET: THÊM / SỬA THẺ ================= -->
+    <div id="cardModal" class="fixed inset-0 z-50 hidden">
+        <div onclick="closeCardModal()" class="bottom-sheet-backdrop absolute inset-0 bg-black/40 opacity-0"></div>
+        <div id="cardModalPanel" class="bottom-sheet-panel absolute bottom-0 left-0 right-0 max-w-lg mx-auto bg-ios-bg rounded-t-3xl shadow-2xl transform translate-y-full max-h-[92vh] flex flex-col">
+            
+            <!-- Thanh kéo & Header Modal -->
+            <div class="bg-white rounded-t-3xl px-4 pt-2.5 pb-3 border-b border-gray-200 flex-shrink-0">
+                <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-2.5"></div>
+                <div class="flex items-center justify-between">
+                    <button onclick="closeCardModal()" class="text-ios-blue text-sm font-medium px-1 py-1">Hủy</button>
+                    <h3 id="cardModalTitle" class="text-base font-bold text-gray-900">Thêm Thẻ Mới</h3>
+                    <button onclick="saveCard()" class="text-ios-blue text-sm font-bold px-1 py-1">Lưu</button>
+                </div>
+            </div>
+
+            <!-- Form nhập liệu cuộn dọc -->
+            <div class="p-4 overflow-y-auto space-y-4 flex-1">
+                <input type="hidden" id="editCardId">
+
+                <!-- Nhóm 1: Thông tin thẻ -->
+                <div class="bg-white rounded-2xl p-3.5 shadow-sm space-y-3">
+                    <div>
+                        <label class="text-xs font-semibold text-gray-500 block mb-1">Tên thẻ *</label>
+                        <input type="text" id="cardName" placeholder="VD: Charizard VSTAR SAR" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 font-medium text-gray-900 focus:outline-none focus:border-ios-blue">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs font-semibold text-gray-500 block mb-1">Mã thẻ / Set</label>
+                            <input type="text" id="cardCode" placeholder="VD: s12a 212/172" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-900 focus:outline-none focus:border-ios-blue">
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-gray-500 block mb-1">Hệ thẻ (TCG)</label>
+                            <select id="cardTcg" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-900 focus:outline-none focus:border-ios-blue">
+                                <option value="Pokémon">Pokémon</option>
+                                <option value="One Piece">One Piece</option>
+                                <option value="Yu-Gi-Oh!">Yu-Gi-Oh!</option>
+                                <option value="Dragon Ball">Dragon Ball</option>
+                                <option value="Khác">Khác</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs font-semibold text-gray-500 block mb-1">Khách hàng</label>
+                            <input type="text" id="cardCustomer" value="Cá nhân" placeholder="Tên khách hoặc Cá nhân" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-900 focus:outline-none focus:border-ios-blue">
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-gray-500 block mb-1">Đợt gửi (Batch)</label>
+                            <select id="cardBatchId" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-900 focus:outline-none focus:border-ios-blue">
+                                <!-- Options populated by JS -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nhóm 2: Gói chấm & Chi phí (Yên Nhật ¥) -->
+                <div class="bg-white rounded-2xl p-3.5 shadow-sm space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-gray-700 uppercase">Chi phí & Doanh thu (¥)</span>
+                        <span id="modalProfitPreview" class="text-xs font-bold text-ios-green">Lãi: ¥0</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs font-semibold text-gray-500 block mb-1">Gói dịch vụ PSA</label>
+                            <select id="cardServiceTier" onchange="applyTierPrice(this.value)" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-900 focus:outline-none focus:border-ios-blue">
+                                <option value="Value Bulk" data-price="2980">Value Bulk (~¥2,980)</option>
+                                <option value="Value" data-price="3980">Value (~¥3,980)</option>
+                                <option value="Value Plus" data-price="6600">Value Plus (~¥6,600)</option>
+                                <option value="Regular" data-price="11000">Regular (~¥11,000)</option>
+                                <option value="Express" data-price="22000">Express (~¥22,000)</option>
+                                <option value="Custom" data-price="0">Tự nhập giá...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-gray-500 block mb-1">Số lượng thẻ</label>
+                            <input type="number" id="cardQty" value="1" min="1" oninput="updateModalProfitPreview()" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 font-bold text-gray-900 focus:outline-none focus:border-ios-blue">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs font-semibold text-gray-500 block mb-1">Phí chấm PSA / thẻ (¥)</label>
+                            <input type="number" id="cardPsaCost" value="2980" oninput="updateModalProfitPreview()" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 font-semibold text-psa-red focus:outline-none focus:border-ios-blue">
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-gray-500 block mb-1">Giá thu khách / thẻ (¥)</label>
+                            <input type="number" id="cardCustomerPrice" value="0" oninput="updateModalProfitPreview()" placeholder="0 nếu tự gửi" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 font-semibold text-ios-blue focus:outline-none focus:border-ios-blue">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nhóm 3: Trạng thái & Kết quả điểm -->
+                <div class="bg-white rounded-2xl p-3.5 shadow-sm space-y-3">
+                    <div>
+                        <label class="text-xs font-semibold text-gray-500 block mb-1">Trạng thái hiện tại</label>
+                        <select id="cardStatus" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 font-medium text-gray-900 focus:outline-none focus:border-ios-blue">
+                            <option value="preparing">🟡 Chuẩn bị / Soi thẻ</option>
+                            <option value="shipped">🔵 Đã gửi đi PSA</option>
+                            <option value="grading">🟣 Đang chấm tại PSA</option>
+                            <option value="graded">🟢 Đã có điểm / Về tay</option>
+                            <option value="returned">✅ Đã trả khách</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs font-semibold text-gray-500 block mb-1">Điểm dự kiến / Đạt được</label>
+                            <select id="cardGrade" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 font-bold text-gray-900 focus:outline-none focus:border-ios-blue">
+                                <option value="Dự kiến 10">🎯 Dự kiến PSA 10</option>
+                                <option value="PSA 10">🏆 PSA 10 (Gem Mint)</option>
+                                <option value="PSA 9">🥈 PSA 9 (Mint)</option>
+                                <option value="PSA 8">🥉 PSA 8 (NM-MT)</option>
+                                <option value="PSA 7 trở xuống">PSA 7 trở xuống</option>
+                                <option value="Chưa có">Chưa xác định</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-gray-500 block mb-1">Số Cert PSA (nếu có)</label>
+                            <input type="text" id="cardCert" placeholder="VD: 84920192" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-900 focus:outline-none focus:border-ios-blue">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-semibold text-gray-500 block mb-1">Ghi chú tình trạng thẻ</label>
+                        <textarea id="cardNotes" rows="2" placeholder="VD: Lệch tâm nhẹ mặt sau 55/45, góc đẹp..." class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-ios-blue"></textarea>
+                    </div>
+                </div>
+
+                <!-- Nút xóa thẻ (chỉ hiện khi sửa) -->
+                <button id="deleteCardBtn" onclick="deleteCurrentCard()" class="hidden w-full py-3 bg-red-50 text-psa-red font-bold rounded-2xl text-sm active:scale-[0.99] transition">
+                    <i class="fa-solid fa-trash-can mr-1.5"></i> Xóa thẻ này
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= BOTTOM SHEET: TẠO / SỬA ĐỢT GỬI (BATCH) ================= -->
+    <div id="batchModal" class="fixed inset-0 z-50 hidden">
+        <div onclick="closeBatchModal()" class="bottom-sheet-backdrop absolute inset-0 bg-black/40 opacity-0"></div>
+        <div id="batchModalPanel" class="bottom-sheet-panel absolute bottom-0 left-0 right-0 max-w-lg mx-auto bg-ios-bg rounded-t-3xl shadow-2xl transform translate-y-full">
+            <div class="bg-white rounded-t-3xl px-4 pt-2.5 pb-3 border-b border-gray-200">
+                <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-2.5"></div>
+                <div class="flex items-center justify-between">
+                    <button onclick="closeBatchModal()" class="text-ios-blue text-sm font-medium px-1 py-1">Hủy</button>
+                    <h3 id="batchModalTitle" class="text-base font-bold text-gray-900">Đợt Gửi Mới</h3>
+                    <button onclick="saveBatch()" class="text-ios-blue text-sm font-bold px-1 py-1">Lưu</button>
+                </div>
+            </div>
+
+            <div class="p-4 space-y-4">
+                <input type="hidden" id="editBatchId">
+                <div class="bg-white rounded-2xl p-3.5 shadow-sm space-y-3">
+                    <div>
+                        <label class="text-xs font-semibold text-gray-500 block mb-1">Tên đợt gửi *</label>
+                        <input type="text" id="batchName" placeholder="VD: Đợt 11/2026 - PSA Japan Bulk" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 font-medium text-gray-900 focus:outline-none focus:border-ios-blue">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs font-semibold text-gray-500 block mb-1">Phí Ship 2 chiều (¥)</label>
+                            <input type="number" id="batchShipping" value="0" placeholder="0" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-900 focus:outline-none focus:border-ios-blue">
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-gray-500 block mb-1">Bảo hiểm & Phụ phí (¥)</label>
+                            <input type="number" id="batchExtraFee" value="0" placeholder="Upcharge, hộp..." class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-900 focus:outline-none focus:border-ios-blue">
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-gray-400">Tổng phí Ship + Phụ phí của đợt này sẽ được tự động chia đều cho tổng số thẻ thuộc đợt để tính lợi nhuận chuẩn xác.</p>
+                </div>
+
+                <button id="deleteBatchBtn" onclick="deleteCurrentBatch()" class="hidden w-full py-3 bg-red-50 text-psa-red font-bold rounded-2xl text-sm">
+                    Xóa đợt gửi này
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= CUSTOM TOAST & CONFIRM DIALOG (KHÔNG DÙNG ALERT/CONFIRM) ================= -->
+    <div id="toastMessage" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-gray-900/90 text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-lg opacity-0 pointer-events-none transition-opacity duration-200 flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-circle-check text-ios-green"></i>
+        <span id="toastText">Đã lưu thành công</span>
+    </div>
+
+    <div id="confirmDialog" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/40">
+        <div class="bg-white rounded-2xl max-w-xs w-full p-5 text-center shadow-2xl space-y-4">
+            <h4 id="confirmTitle" class="text-base font-bold text-gray-900">Xác nhận</h4>
+            <p id="confirmBody" class="text-xs text-gray-600 leading-relaxed">Bạn có chắc chắn muốn thực hiện thao tác này?</p>
+            <div class="grid grid-cols-2 gap-2.5 pt-1">
+                <button onclick="closeConfirmDialog()" class="py-2.5 rounded-xl bg-gray-100 text-gray-700 font-semibold text-sm">Hủy</button>
+                <button id="confirmOkBtn" class="py-2.5 rounded-xl bg-psa-red text-white font-bold text-sm">Đồng ý</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL HƯỚNG DẪN & MÃ GOOGLE APPS SCRIPT ================= -->
+    <div id="scriptModal" class="fixed inset-0 z-50 hidden">
+        <div onclick="closeScriptModal()" class="bottom-sheet-backdrop absolute inset-0 bg-black/40 opacity-0"></div>
+        <div id="scriptModalPanel" class="bottom-sheet-panel absolute bottom-0 left-0 right-0 max-w-lg mx-auto bg-ios-bg rounded-t-3xl shadow-2xl transform translate-y-full max-h-[90vh] flex flex-col">
+            <div class="bg-white rounded-t-3xl px-4 pt-2.5 pb-3 border-b border-gray-200 flex-shrink-0">
+                <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-2.5"></div>
+                <div class="flex items-center justify-between">
+                    <button onclick="closeScriptModal()" class="text-ios-blue text-sm font-medium px-1 py-1">Đóng</button>
+                    <h3 class="text-base font-bold text-gray-900">Mã Google Apps Script</h3>
+                    <button onclick="copyAppsScriptCode()" class="text-ios-blue text-sm font-bold px-1 py-1">Sao chép</button>
+                </div>
+            </div>
+
+            <div class="p-4 overflow-y-auto space-y-3 flex-1">
+                <div class="bg-white rounded-2xl p-3.5 shadow-sm space-y-2 text-xs text-gray-600 leading-relaxed">
+                    <p class="font-bold text-gray-900">Hướng dẫn cài đặt 1 lần duy nhất:</p>
+                    <ol class="list-decimal pl-4 space-y-1">
+                        <li>Mở file Google Sheet tên <strong>Chấm PSA</strong> trên máy tính (hoặc Safari chế độ máy tính).</li>
+                        <li>Chọn <strong>Tiện ích mở rộng (Extensions)</strong> &gt; <strong>Apps Script</strong>.</li>
+                        <li>Xóa hết code cũ, dán đoạn mã bên dưới vào và nhấn <strong>Lưu (Save)</strong>.</li>
+                        <li>Nhấn <strong>Triển khai (Deploy)</strong> &gt; <strong>Tùy chọn triển khai mới (New deployment)</strong> &gt; chọn loại <strong>Ứng dụng web (Web app)</strong>.</li>
+                        <li>Ở mục <em>Ai có quyền truy cập (Who has access)</em> chọn <strong>Bất kỳ ai (Anyone)</strong> &gt; nhấn <strong>Triển khai</strong> và sao chép URL Web App dán vào ứng dụng này.</li>
+                    </ol>
+                </div>
+
+                <div class="bg-gray-900 rounded-2xl p-3.5 text-gray-100 space-y-2">
+                    <div class="flex items-center justify-between border-b border-gray-700 pb-2">
+                        <span class="text-[11px] font-mono text-emerald-400">Code.gs</span>
+                        <button onclick="copyAppsScriptCode()" class="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 rounded-lg text-[11px] font-bold text-white flex items-center gap-1.5">
+                            <i class="fa-regular fa-copy"></i> Copy 1 chạm
+                        </button>
+                    </div>
+                    <textarea id="appsScriptCodeArea" readonly rows="12" class="w-full bg-transparent font-mono text-[11px] text-gray-200 focus:outline-none select-all leading-relaxed">function doPost(e) {
+  try {
+    var payload = JSON.parse(e.postData.contents);
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Chấm PSA") || ss.getSheets()[0];
+    
+    sheet.clearContents();
+    if (payload.rows && payload.rows.length > 0) {
+      sheet.getRange(1, 1, payload.rows.length, payload.rows[0].length).setValues(payload.rows);
+      sheet.getRange(1, 1, 1, payload.rows[0].length).setFontWeight("bold").setBackground("#E8F5E9");
+      sheet.setFrozenRows(1);
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success",
+      count: payload.rows.length - 1
+    })).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "error",
+      message: err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= JAVASCRIPT LOGIC ================= -->
+    <script>
+        // Khóa lưu trữ LocalStorage
+        const STORAGE_KEY = 'psa_tracker_pro_data_v1';
+
+        // Dữ liệu mặc định ban đầu (kèm 4 thẻ mẫu thực tế)
+        const DEFAULT_DATA = {
+            exchangeRate: 168, // 1 JPY = 168 VND
+            currencyMode: 'JPY', // 'JPY' hoặc 'VND'
+            selectedBatch: 'ALL',
+            gsWebhookUrl: '',
+            batches: [
+                {
+                    id: 'batch_1',
+                    name: 'Đợt 11/2026 - PSA Japan Bulk',
+                    shippingFee: 2500,
+                    extraFee: 1000
+                },
+                {
+                    id: 'batch_2',
+                    name: 'Đợt Express - Hàng Giá Trị Cao',
+                    shippingFee: 3200,
+                    extraFee: 2500
+                }
+            ],
+            cards: [
+                {
+                    id: 'sample_1',
+                    isSample: true,
+                    name: 'Charizard VSTAR SAR',
+                    code: 's12a 212/172',
+                    tcg: 'Pokémon',
+                    customer: 'Anh Minh (Q1)',
+                    batchId: 'batch_1',
+                    serviceTier: 'Value Bulk',
+                    qty: 1,
+                    psaCost: 2980,
+                    customerPrice: 4800,
+                    status: 'grading',
+                    grade: 'Dự kiến 10',
+                    cert: '',
+                    notes: 'Mặt trước chuẩn 50/50, không chấm trắng.'
+                },
+                {
+                    id: 'sample_2',
+                    isSample: true,
+                    name: 'Monkey D. Luffy (Gear 5) Manga Alt Art',
+                    code: 'OP05-119 SEC',
+                    tcg: 'One Piece',
+                    customer: 'Cá nhân',
+                    batchId: 'batch_2',
+                    serviceTier: 'Express',
+                    qty: 1,
+                    psaCost: 22000,
+                    customerPrice: 0,
+                    status: 'graded',
+                    grade: 'PSA 10',
+                    cert: '94810274',
+                    notes: 'Thẻ tự sưu tầm, đã về tay nguyên seal.'
+                },
+                {
+                    id: 'sample_3',
+                    isSample: true,
+                    name: 'Pikachu with Grey Felt Hat',
+                    code: 'SVP EN 085',
+                    tcg: 'Pokémon',
+                    customer: 'Tuấn Anh',
+                    batchId: 'batch_1',
+                    serviceTier: 'Value Bulk',
+                    qty: 2,
+                    psaCost: 2980,
+                    customerPrice: 4500,
+                    status: 'shipped',
+                    grade: 'Dự kiến 10',
+                    cert: '',
+                    notes: 'Gửi kèm 2 lá từ cùng 1 khách.'
+                },
+                {
+                    id: 'sample_4',
+                    isSample: true,
+                    name: 'Dark Magician (Quarter Century Secret)',
+                    code: 'QCDB-JP001',
+                    tcg: 'Yu-Gi-Oh!',
+                    customer: 'Huy Hoàng',
+                    batchId: 'batch_1',
+                    serviceTier: 'Value',
+                    qty: 1,
+                    psaCost: 3980,
+                    customerPrice: 5500,
+                    status: 'preparing',
+                    grade: 'Dự kiến 10',
+                    cert: '',
+                    notes: 'Cần lau nhẹ bề mặt foil trước khi đóng sleeve.'
+                }
+            ]
+        };
+
+        let appState = {};
+
+        // Khởi tạo ứng dụng
+        window.onload = function () {
+            loadData();
+            renderAll();
+        };
+
+        // Tải dữ liệu từ LocalStorage
+        function loadData() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    appState = JSON.parse(raw);
+                    // Đảm bảo cấu trúc đầy đủ
+                    if (!appState.batches) appState.batches = [];
+                    if (!appState.cards) appState.cards = [];
+                    if (!appState.exchangeRate) appState.exchangeRate = 168;
+                    if (!appState.currencyMode) appState.currencyMode = 'JPY';
+                    if (typeof appState.gsWebhookUrl !== 'string') appState.gsWebhookUrl = '';
+                } else {
+                    appState = JSON.parse(JSON.stringify(DEFAULT_DATA));
+                    saveData();
+                }
+            } catch (e) {
+                console.error("Lỗi đọc LocalStorage:", e);
+                appState = JSON.parse(JSON.stringify(DEFAULT_DATA));
+            }
+        }
+
+        // Lưu dữ liệu vào LocalStorage
+        function saveData() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+            } catch (e) {
+                showToast("Không thể lưu vào bộ nhớ trình duyệt!", true);
+            }
+        }
+
+        // Định dạng tiền tệ theo chế độ đang chọn (JPY hoặc VND)
+        function formatMoney(jpyAmount, forceCurrency = null) {
+            const mode = forceCurrency || appState.currencyMode;
+            const num = Number(jpyAmount) || 0;
+            if (mode === 'VND') {
+                const vnd = Math.round(num * appState.exchangeRate);
+                return vnd.toLocaleString('vi-VN') + '₫';
+            }
+            return '¥' + Math.round(num).toLocaleString('en-US');
+        }
+
+        // Chuyển đổi hiển thị JPY <-> VND trên Header
+        function toggleCurrencyDisplay() {
+            appState.currencyMode = appState.currencyMode === 'JPY' ? 'VND' : 'JPY';
+            saveData();
+            renderAll();
+            showToast(`Đang hiển thị theo ${appState.currencyMode === 'JPY' ? 'Yên Nhật (¥)' : 'Tiền Việt (₫)'}`);
+        }
+
+        // Cập nhật tỷ giá
+        function updateExchangeRate(val) {
+            const rate = parseFloat(val);
+            if (rate && rate > 0) {
+                appState.exchangeRate = rate;
+                saveData();
+                renderAll();
+                convertQuickCurrency('JPY');
+                showToast(`Đã cập nhật tỷ giá: 1¥ = ${rate}₫`);
+            }
+        }
+
+        // Công cụ quy đổi nhanh
+        function convertQuickCurrency(source) {
+            const jpyInput = document.getElementById('quickJpyInput');
+            const vndInput = document.getElementById('quickVndInput');
+            const rate = appState.exchangeRate || 168;
+
+            if (source === 'JPY') {
+                const jpy = parseFloat(jpyInput.value);
+                vndInput.value = !isNaN(jpy) ? Math.round(jpy * rate) : '';
+            } else {
+                const vnd = parseFloat(vndInput.value);
+                jpyInput.value = !isNaN(vnd) ? Math.round(vnd / rate) : '';
+            }
+        }
+
+        // Chuyển đổi giữa 3 Tab chính
+        function switchTab(tabName) {
+            const tabs = ['cards', 'batches', 'settings'];
+            const titles = {
+                cards: 'Danh Sách Thẻ',
+                batches: 'Chi Phí & Lô Gửi',
+                settings: 'Sao Lưu & Cài Đặt'
+            };
+
+            tabs.forEach(t => {
+                const section = document.getElementById(`tab-${t}`);
+                const navBtn = document.getElementById(`nav-${t}`);
+                if (t === tabName) {
+                    section.classList.remove('hidden');
+                    navBtn.classList.remove('text-gray-400');
+                    navBtn.classList.add('text-ios-blue');
+                } else {
+                    section.classList.add('hidden');
+                    navBtn.classList.remove('text-ios-blue');
+                    navBtn.classList.add('text-gray-400');
+                }
+            });
+
+            document.getElementById('headerTitle').textContent = titles[tabName];
+            if (tabName === 'batches') renderBatches();
+            if (tabName === 'settings') updateSampleBadge();
+        }
+
+        // Render toàn bộ giao diện
+        function renderAll() {
+            document.getElementById('headerRateDisplay').textContent = appState.exchangeRate;
+            document.getElementById('exchangeRateInput').value = appState.exchangeRate;
+            document.getElementById('currencyToggleBtn').textContent = appState.currencyMode === 'JPY' ? '¥ JPY' : '₫ VNĐ';
+            const webhookInput = document.getElementById('gsWebhookInput');
+            if (webhookInput) webhookInput.value = appState.gsWebhookUrl || '';
+
+            populateBatchDropdowns();
+            renderCards();
+            renderBatches();
+            updateSampleBadge();
+        }
+
+        // Đổ danh sách đợt gửi vào các thẻ <select>
+        function populateBatchDropdowns() {
+            const filterSelect = document.getElementById('batchFilterSelect');
+            const cardBatchSelect = document.getElementById('cardBatchId');
+
+            let filterHtml = `<option value="ALL">📦 Tất cả đợt gửi (${appState.batches.length})</option>`;
+            let modalHtml = `<option value="">-- Không thuộc đợt nào --</option>`;
+
+            appState.batches.forEach(b => {
+                filterHtml += `<option value="${b.id}">📦 ${escapeHtml(b.name)}</option>`;
+                modalHtml += `<option value="${b.id}">${escapeHtml(b.name)}</option>`;
+            });
+
+            filterSelect.innerHTML = filterHtml;
+            filterSelect.value = appState.selectedBatch || 'ALL';
+            cardBatchSelect.innerHTML = modalHtml;
+        }
+
+        function handleBatchChange(val) {
+            appState.selectedBatch = val;
+            saveData();
+            renderCards();
+        }
+
+        // Tính chi phí phụ phí chia đều trên mỗi thẻ cho từng đợt gửi
+        function getBatchOverheadPerCardMap() {
+            const map = {};
+            appState.batches.forEach(batch => {
+                const cardsInBatch = appState.cards.filter(c => c.batchId === batch.id);
+                const totalQty = cardsInBatch.reduce((sum, c) => sum + (Number(c.qty) || 1), 0);
+                const totalOverhead = (Number(batch.shippingFee) || 0) + (Number(batch.extraFee) || 0);
+                map[batch.id] = totalQty > 0 ? (totalOverhead / totalQty) : 0;
+            });
+            return map;
+        }
+
+        // Render Dashboard & Danh sách thẻ
+        function renderCards() {
+            const searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
+            const statusFilter = document.getElementById('statusFilterSelect').value;
+            const tcgFilter = document.getElementById('tcgFilterSelect').value;
+            const batchFilter = appState.selectedBatch || 'ALL';
+
+            // Hiện/ẩn nút xóa tìm kiếm & xóa lọc
+            document.getElementById('clearSearchBtn').classList.toggle('hidden', searchQuery === '');
+            const isFiltered = statusFilter !== 'ALL' || tcgFilter !== 'ALL' || searchQuery !== '';
+            document.getElementById('resetFilterBtn').classList.toggle('hidden', !isFiltered);
+
+            // Lọc theo đợt gửi trước để tính Dashboard cho đợt đó (hoặc toàn bộ)
+            const batchCards = appState.cards.filter(c => batchFilter === 'ALL' || c.batchId === batchFilter);
+            const overheadMap = getBatchOverheadPerCardMap();
+
+            // Tính toán số liệu Dashboard
+            let totalCardsCount = 0;
+            let completedCardsCount = 0;
+            let totalCostJpy = 0;
+            let totalRevenueJpy = 0;
+
+            let cntPrep = 0, cntShip = 0, cntGrad = 0, cntDone = 0;
+
+            batchCards.forEach(c => {
+                const qty = Number(c.qty) || 1;
+                const psaCost = Number(c.psaCost) || 0;
+                const revPrice = Number(c.customerPrice) || 0;
+                const overheadPerCard = c.batchId ? (overheadMap[c.batchId] || 0) : 0;
+
+                totalCardsCount += qty;
+                totalCostJpy += (psaCost + overheadPerCard) * qty;
+                totalRevenueJpy += revPrice * qty;
+
+                if (c.status === 'preparing') cntPrep += qty;
+                else if (c.status === 'shipped') cntShip += qty;
+                else if (c.status === 'grading') cntGrad += qty;
+                else if (c.status === 'graded' || c.status === 'returned') {
+                    cntDone += qty;
+                    completedCardsCount += qty;
+                }
+            });
+
+            // Nếu đang xem 1 đợt cụ thể mà đợt đó chưa có thẻ nào, vẫn cộng phí ship cố định của đợt nếu có
+            if (batchFilter !== 'ALL' && batchCards.length === 0) {
+                const b = appState.batches.find(x => x.id === batchFilter);
+                if (b) totalCostJpy += (Number(b.shippingFee) || 0) + (Number(b.extraFee) || 0);
+            }
+
+            const netProfitJpy = totalRevenueJpy - totalCostJpy;
+            const secondaryCurrency = appState.currencyMode === 'JPY' ? 'VND' : 'JPY';
+
+            document.getElementById('statTotalCards').textContent = totalCardsCount;
+            document.getElementById('statCompletedCards').textContent = completedCardsCount;
+            
+            const profitEl = document.getElementById('statNetProfit');
+            profitEl.textContent = (netProfitJpy >= 0 ? '+' : '') + formatMoney(netProfitJpy);
+            profitEl.className = `text-xl font-extrabold mt-0.5 ${netProfitJpy >= 0 ? 'text-ios-green' : 'text-psa-red'}`;
+            document.getElementById('statNetProfitSub').textContent = (netProfitJpy >= 0 ? '+' : '') + formatMoney(netProfitJpy, secondaryCurrency);
+
+            document.getElementById('statTotalCost').textContent = formatMoney(totalCostJpy);
+            document.getElementById('statTotalCostSub').textContent = formatMoney(totalCostJpy, secondaryCurrency);
+
+            document.getElementById('statTotalRevenue').textContent = formatMoney(totalRevenueJpy);
+            document.getElementById('statTotalRevenueSub').textContent = formatMoney(totalRevenueJpy, secondaryCurrency);
+
+            document.getElementById('countPreparing').textContent = cntPrep;
+            document.getElementById('countShipped').textContent = cntShip;
+            document.getElementById('countGrading').textContent = cntGrad;
+            document.getElementById('countDone').textContent = cntDone;
+
+            // Lọc danh sách hiển thị theo tìm kiếm, trạng thái và hệ thẻ
+            const filteredCards = batchCards.filter(c => {
+                const matchSearch = !searchQuery || 
+                    c.name.toLowerCase().includes(searchQuery) ||
+                    (c.code && c.code.toLowerCase().includes(searchQuery)) ||
+                    (c.customer && c.customer.toLowerCase().includes(searchQuery)) ||
+                    (c.cert && c.cert.toLowerCase().includes(searchQuery));
+                
+                const matchStatus = statusFilter === 'ALL' || 
+                    (statusFilter === 'done' ? (c.status === 'graded' || c.status === 'returned') : c.status === statusFilter);
+                
+                const matchTcg = tcgFilter === 'ALL' || c.tcg === tcgFilter;
+
+                return matchSearch && matchStatus && matchTcg;
+            });
+
+            const container = document.getElementById('cardsListContainer');
+            if (filteredCards.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-2xl p-8 text-center shadow-sm border border-gray-100">
+                        <div class="w-12 h-12 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center mx-auto mb-3 text-xl">
+                            <i class="fa-regular fa-folder-open"></i>
+                        </div>
+                        <p class="text-sm font-bold text-gray-800">Không tìm thấy thẻ nào</p>
+                        <p class="text-xs text-gray-500 mt-1">Nhấn nút <strong>+</strong> ở góc trên để thêm thẻ gửi chấm mới.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filteredCards.map(card => {
+                const statusBadge = getStatusBadgeHtml(card.status);
+                const qty = Number(card.qty) || 1;
+                const overhead = card.batchId ? (overheadMap[card.batchId] || 0) : 0;
+                const totalItemCost = ((Number(card.psaCost) || 0) + overhead) * qty;
+                const totalItemRev = (Number(card.customerPrice) || 0) * qty;
+                const itemProfit = totalItemRev - totalItemCost;
+                const isPersonal = !card.customer || card.customer.trim().toLowerCase() === 'cá nhân';
+
+                return `
+                    <div onclick="openCardModal('${card.id}')" class="bg-white rounded-2xl p-3.5 shadow-sm border border-gray-100 active:scale-[0.99] transition cursor-pointer space-y-2.5">
+                        <!-- Dòng 1: Tên thẻ & Trạng thái -->
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-600">${escapeHtml(card.tcg)}</span>
+                                    ${card.code ? `<span class="text-[11px] font-mono font-semibold text-gray-500">${escapeHtml(card.code)}</span>` : ''}
+                                    ${qty > 1 ? `<span class="text-[11px] font-extrabold text-ios-blue bg-blue-50 px-1.5 py-0.5 rounded-md">x${qty}</span>` : ''}
+                                </div>
+                                <h3 class="text-sm font-bold text-gray-900 mt-1 leading-snug">${escapeHtml(card.name)}</h3>
+                            </div>
+                            <div class="flex-shrink-0">
+                                ${statusBadge}
+                            </div>
+                        </div>
+
+                        <!-- Dòng 2: Khách hàng, Gói dịch vụ & Điểm PSA -->
+                        <div class="flex items-center justify-between text-xs text-gray-600 bg-gray-50/80 rounded-xl px-2.5 py-2">
+                            <div class="flex items-center gap-2 truncate">
+                                <span class="font-semibold ${isPersonal ? 'text-gray-500' : 'text-gray-800'}">
+                                    <i class="fa-solid ${isPersonal ? 'fa-user' : 'fa-user-tag'} text-[10px] mr-1 text-gray-400"></i>${escapeHtml(card.customer || 'Cá nhân')}
+                                </span>
+                                <span class="text-gray-300">•</span>
+                                <span class="text-gray-500">${escapeHtml(card.serviceTier)}</span>
+                            </div>
+                            <div class="font-extrabold ${card.grade === 'PSA 10' ? 'text-psa-red' : 'text-gray-700'} flex-shrink-0">
+                                ${escapeHtml(card.grade)}
+                            </div>
+                        </div>
+
+                        <!-- Dòng 3: Chi phí & Lợi nhuận -->
+                        <div class="flex items-center justify-between pt-0.5 text-xs">
+                            <div class="text-gray-500">
+                                Phí PSA: <span class="font-bold text-gray-800">${formatMoney(totalItemCost)}</span>
+                                ${!isPersonal ? `<span class="mx-1 text-gray-300">|</span> Thu: <span class="font-bold text-ios-blue">${formatMoney(totalItemRev)}</span>` : ''}
+                            </div>
+                            <div>
+                                ${isPersonal 
+                                    ? `<span class="text-[11px] font-medium text-gray-400 italic">Thẻ tự gửi</span>`
+                                    : `<span class="font-extrabold ${itemProfit >= 0 ? 'text-ios-green' : 'text-psa-red'}">${itemProfit >= 0 ? '+' : ''}${formatMoney(itemProfit)}</span>`
+                                }
+                            </div>
+                        </div>
+
+                        ${card.notes ? `<p class="text-[11px] text-gray-400 truncate border-t border-gray-100 pt-1.5"><i class="fa-regular fa-note-sticky mr-1"></i>${escapeHtml(card.notes)}</p>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getStatusBadgeHtml(status) {
+            const map = {
+                preparing: { text: 'Chuẩn bị', cls: 'bg-amber-100 text-amber-800' },
+                shipped: { text: 'Đã gửi PSA', cls: 'bg-blue-100 text-blue-800' },
+                grading: { text: 'Đang chấm', cls: 'bg-purple-100 text-purple-800' },
+                graded: { text: 'Đã có điểm', cls: 'bg-emerald-100 text-emerald-800' },
+                returned: { text: 'Đã trả khách', cls: 'bg-gray-200 text-gray-700' }
+            };
+            const s = map[status] || map.preparing;
+            return `<span class="text-[11px] font-bold px-2.5 py-1 rounded-full ${s.cls}">${s.text}</span>`;
+        }
+
+        // Lọc nhanh khi bấm vào 4 ô trạng thái trên Dashboard
+        function quickFilterStatus(statusKey) {
+            const select = document.getElementById('statusFilterSelect');
+            select.value = select.value === statusKey ? 'ALL' : statusKey;
+            renderCards();
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            renderCards();
+        }
+
+        function resetFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('statusFilterSelect').value = 'ALL';
+            document.getElementById('tcgFilterSelect').value = 'ALL';
+            renderCards();
+        }
+
+        // ================= XỬ LÝ MODAL THÊM / SỬA THẺ =================
+        function openCardModal(cardId = null) {
+            const modal = document.getElementById('cardModal');
+            const backdrop = modal.querySelector('.bottom-sheet-backdrop');
+            const panel = document.getElementById('cardModalPanel');
+
+            populateBatchDropdowns();
+
+            if (cardId) {
+                const card = appState.cards.find(c => c.id === cardId);
+                if (!card) return;
+                document.getElementById('cardModalTitle').textContent = 'Chi Tiết & Sửa Thẻ';
+                document.getElementById('editCardId').value = card.id;
+                document.getElementById('cardName').value = card.name;
+                document.getElementById('cardCode').value = card.code || '';
+                document.getElementById('cardTcg').value = card.tcg || 'Pokémon';
+                document.getElementById('cardCustomer').value = card.customer || 'Cá nhân';
+                document.getElementById('cardBatchId').value = card.batchId || '';
+                document.getElementById('cardServiceTier').value = card.serviceTier || 'Value Bulk';
+                document.getElementById('cardQty').value = card.qty || 1;
+                document.getElementById('cardPsaCost').value = card.psaCost || 0;
+                document.getElementById('cardCustomerPrice').value = card.customerPrice || 0;
+                document.getElementById('cardStatus').value = card.status || 'preparing';
+                document.getElementById('cardGrade').value = card.grade || 'Dự kiến 10';
+                document.getElementById('cardCert').value = card.cert || '';
+                document.getElementById('cardNotes').value = card.notes || '';
+                document.getElementById('deleteCardBtn').classList.remove('hidden');
+            } else {
+                document.getElementById('cardModalTitle').textContent = 'Thêm Thẻ Mới';
+                document.getElementById('editCardId').value = '';
+                document.getElementById('cardName').value = '';
+                document.getElementById('cardCode').value = '';
+                document.getElementById('cardTcg').value = 'Pokémon';
+                document.getElementById('cardCustomer').value = 'Cá nhân';
+                document.getElementById('cardBatchId').value = appState.selectedBatch !== 'ALL' ? appState.selectedBatch : (appState.batches[0]?.id || '');
+                document.getElementById('cardServiceTier').value = 'Value Bulk';
+                document.getElementById('cardQty').value = 1;
+                document.getElementById('cardPsaCost').value = 2980;
+                document.getElementById('cardCustomerPrice').value = 0;
+                document.getElementById('cardStatus').value = 'preparing';
+                document.getElementById('cardGrade').value = 'Dự kiến 10';
+                document.getElementById('cardCert').value = '';
+                document.getElementById('cardNotes').value = '';
+                document.getElementById('deleteCardBtn').classList.add('hidden');
+            }
+
+            updateModalProfitPreview();
+            modal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                backdrop.classList.remove('opacity-0');
+                panel.classList.remove('translate-y-full');
+            });
+        }
+
+        function closeCardModal() {
+            const modal = document.getElementById('cardModal');
+            const backdrop = modal.querySelector('.bottom-sheet-backdrop');
+            const panel = document.getElementById('cardModalPanel');
+
+            backdrop.classList.add('opacity-0');
+            panel.classList.add('translate-y-full');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        function applyTierPrice(tier) {
+            const select = document.getElementById('cardServiceTier');
+            const option = select.options[select.selectedIndex];
+            const suggested = option.getAttribute('data-price');
+            if (suggested && Number(suggested) > 0) {
+                document.getElementById('cardPsaCost').value = suggested;
+                updateModalProfitPreview();
+            }
+        }
+
+        function updateModalProfitPreview() {
+            const qty = Number(document.getElementById('cardQty').value) || 1;
+            const cost = Number(document.getElementById('cardPsaCost').value) || 0;
+            const rev = Number(document.getElementById('cardCustomerPrice').value) || 0;
+            const profit = (rev - cost) * qty;
+
+            const el = document.getElementById('modalProfitPreview');
+            el.textContent = `Lãi gộp: ${profit >= 0 ? '+' : ''}¥${profit.toLocaleString('en-US')}`;
+            el.className = `text-xs font-bold ${profit >= 0 ? 'text-ios-green' : 'text-psa-red'}`;
+        }
+
+        function saveCard() {
+            const name = document.getElementById('cardName').value.trim();
+            if (!name) {
+                showToast("Vui lòng nhập tên thẻ!", true);
+                document.getElementById('cardName').focus();
+                return;
+            }
+
+            const editId = document.getElementById('editCardId').value;
+            const cardObj = {
+                id: editId || 'card_' + Date.now(),
+                isSample: false,
+                name: name,
+                code: document.getElementById('cardCode').value.trim(),
+                tcg: document.getElementById('cardTcg').value,
+                customer: document.getElementById('cardCustomer').value.trim() || 'Cá nhân',
+                batchId: document.getElementById('cardBatchId').value,
+                serviceTier: document.getElementById('cardServiceTier').value,
+                qty: Math.max(1, parseInt(document.getElementById('cardQty').value) || 1),
+                psaCost: Math.max(0, parseFloat(document.getElementById('cardPsaCost').value) || 0),
+                customerPrice: Math.max(0, parseFloat(document.getElementById('cardCustomerPrice').value) || 0),
+                status: document.getElementById('cardStatus').value,
+                grade: document.getElementById('cardGrade').value,
+                cert: document.getElementById('cardCert').value.trim(),
+                notes: document.getElementById('cardNotes').value.trim()
+            };
+
+            if (editId) {
+                const idx = appState.cards.findIndex(c => c.id === editId);
+                if (idx !== -1) appState.cards[idx] = cardObj;
+                showToast("Đã cập nhật thông tin thẻ");
+            } else {
+                appState.cards.unshift(cardObj);
+                showToast("Đã thêm thẻ mới");
+            }
+
+            saveData();
+            closeCardModal();
+            renderAll();
+        }
+
+        function deleteCurrentCard() {
+            const editId = document.getElementById('editCardId').value;
+            if (!editId) return;
+            openConfirmDialog("Xóa thẻ này?", "Thao tác này không thể hoàn tác.", () => {
+                appState.cards = appState.cards.filter(c => c.id !== editId);
+                saveData();
+                closeCardModal();
+                renderAll();
+                showToast("Đã xóa thẻ");
+            });
+        }
+
+        // ================= QUẢN LÝ ĐỢT GỬI (BATCHES) =================
+        function renderBatches() {
+            const container = document.getElementById('batchesListContainer');
+            if (appState.batches.length === 0) {
+                container.innerHTML = `<div class="bg-white rounded-2xl p-6 text-center text-xs text-gray-500">Chưa có đợt gửi nào. Nhấn "+ Tạo đợt gửi" để bắt đầu.</div>`;
+                return;
+            }
+
+            container.innerHTML = appState.batches.map(batch => {
+                const cardsInBatch = appState.cards.filter(c => c.batchId === batch.id);
+                const totalQty = cardsInBatch.reduce((s, c) => s + (Number(c.qty) || 1), 0);
+                const basePsaCost = cardsInBatch.reduce((s, c) => s + (Number(c.psaCost) || 0) * (Number(c.qty) || 1), 0);
+                const overhead = (Number(batch.shippingFee) || 0) + (Number(batch.extraFee) || 0);
+                const totalBatchCost = basePsaCost + overhead;
+                const totalBatchRev = cardsInBatch.reduce((s, c) => s + (Number(c.customerPrice) || 0) * (Number(c.qty) || 1), 0);
+                const batchProfit = totalBatchRev - totalBatchCost;
+                const perCardOverhead = totalQty > 0 ? Math.round(overhead / totalQty) : 0;
+
+                return `
+                    <div onclick="openBatchModal('${batch.id}')" class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-2.5 active:scale-[0.99] transition cursor-pointer">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-sm font-bold text-gray-900">📦 ${escapeHtml(batch.name)}</h3>
+                            <span class="text-xs font-bold bg-blue-50 text-ios-blue px-2.5 py-1 rounded-full">${totalQty} thẻ</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-xs bg-gray-50 p-2.5 rounded-xl">
+                            <div>
+                                <span class="text-gray-400 block text-[11px]">Ship + Phụ phí lô:</span>
+                                <span class="font-bold text-gray-800">${formatMoney(overhead)}</span>
+                                <span class="text-[10px] text-gray-400 block">(~${formatMoney(perCardOverhead)}/thẻ)</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-gray-400 block text-[11px]">Lợi nhuận cả lô:</span>
+                                <span class="font-extrabold ${batchProfit >= 0 ? 'text-ios-green' : 'text-psa-red'}">${batchProfit >= 0 ? '+' : ''}${formatMoney(batchProfit)}</span>
+                                <span class="text-[10px] text-gray-400 block">Tổng chi: ${formatMoney(totalBatchCost)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openBatchModal(batchId = null) {
+            const modal = document.getElementById('batchModal');
+            const backdrop = modal.querySelector('.bottom-sheet-backdrop');
+            const panel = document.getElementById('batchModalPanel');
+
+            if (batchId) {
+                const b = appState.batches.find(x => x.id === batchId);
+                if (!b) return;
+                document.getElementById('batchModalTitle').textContent = 'Sửa Đợt Gửi';
+                document.getElementById('editBatchId').value = b.id;
+                document.getElementById('batchName').value = b.name;
+                document.getElementById('batchShipping').value = b.shippingFee || 0;
+                document.getElementById('batchExtraFee').value = b.extraFee || 0;
+                document.getElementById('deleteBatchBtn').classList.remove('hidden');
+            } else {
+                document.getElementById('batchModalTitle').textContent = 'Tạo Đợt Gửi Mới';
+                document.getElementById('editBatchId').value = '';
+                document.getElementById('batchName').value = '';
+                document.getElementById('batchShipping').value = 0;
+                document.getElementById('batchExtraFee').value = 0;
+                document.getElementById('deleteBatchBtn').classList.add('hidden');
+            }
+
+            modal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                backdrop.classList.remove('opacity-0');
+                panel.classList.remove('translate-y-full');
+            });
+        }
+
+        function closeBatchModal() {
+            const modal = document.getElementById('batchModal');
+            const backdrop = modal.querySelector('.bottom-sheet-backdrop');
+            const panel = document.getElementById('batchModalPanel');
+
+            backdrop.classList.add('opacity-0');
+            panel.classList.add('translate-y-full');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        function saveBatch() {
+            const name = document.getElementById('batchName').value.trim();
+            if (!name) {
+                showToast("Vui lòng nhập tên đợt gửi!", true);
+                return;
+            }
+            const editId = document.getElementById('editBatchId').value;
+            const batchObj = {
+                id: editId || 'batch_' + Date.now(),
+                name: name,
+                shippingFee: Math.max(0, parseFloat(document.getElementById('batchShipping').value) || 0),
+                extraFee: Math.max(0, parseFloat(document.getElementById('batchExtraFee').value) || 0)
+            };
+
+            if (editId) {
+                const idx = appState.batches.findIndex(b => b.id === editId);
+                if (idx !== -1) appState.batches[idx] = batchObj;
+                showToast("Đã cập nhật đợt gửi");
+            } else {
+                appState.batches.unshift(batchObj);
+                showToast("Đã tạo đợt gửi mới");
+            }
+
+            saveData();
+            closeBatchModal();
+            renderAll();
+        }
+
+        function deleteCurrentBatch() {
+            const editId = document.getElementById('editBatchId').value;
+            if (!editId) return;
+            openConfirmDialog("Xóa đợt gửi này?", "Các thẻ thuộc đợt này sẽ được giữ lại nhưng không gắn với đợt nào.", () => {
+                appState.batches = appState.batches.filter(b => b.id !== editId);
+                appState.cards.forEach(c => { if (c.batchId === editId) c.batchId = ''; });
+                if (appState.selectedBatch === editId) appState.selectedBatch = 'ALL';
+                saveData();
+                closeBatchModal();
+                renderAll();
+                showToast("Đã xóa đợt gửi");
+            });
+        }
+
+        // ================= SAO LƯU & XUẤT / NHẬP DỮ LIỆU =================
+        function updateSampleBadge() {
+            const sampleCount = appState.cards.filter(c => c.isSample).length;
+            document.getElementById('sampleCountBadge').textContent = `${sampleCount} mẫu`;
+        }
+
+        function removeSampleData() {
+            const sampleCount = appState.cards.filter(c => c.isSample).length;
+            if (sampleCount === 0) {
+                showToast("Không còn thẻ dữ liệu mẫu nào!");
+                return;
+            }
+            openConfirmDialog("Xóa dữ liệu mẫu?", `Xóa ${sampleCount} thẻ mẫu mặc định khỏi danh sách?`, () => {
+                appState.cards = appState.cards.filter(c => !c.isSample);
+                saveData();
+                renderAll();
+                showToast("Đã xóa toàn bộ thẻ mẫu");
+            });
+        }
+
+        function confirmResetAll() {
+            openConfirmDialog("Xóa toàn bộ dữ liệu?", "Toàn bộ danh sách thẻ và đợt gửi sẽ bị xóa vĩnh viễn.", () => {
+                appState.cards = [];
+                appState.batches = [];
+                appState.selectedBatch = 'ALL';
+                saveData();
+                renderAll();
+                showToast("Đã đặt lại ứng dụng trống");
+            });
+        }
+
+        function exportJSON() {
+            const dataStr = JSON.stringify(appState, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const dateStr = new Date().toISOString().slice(0, 10);
+            a.href = url;
+            a.download = `PSA_Tracker_Backup_${dateStr}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast("Đã tải xuống file sao lưu JSON");
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (parsed && Array.isArray(parsed.cards)) {
+                        appState = parsed;
+                        saveData();
+                        renderAll();
+                        showToast("Khôi phục dữ liệu thành công!");
+                    } else {
+                        showToast("File sao lưu không hợp lệ!", true);
+                    }
+                } catch (err) {
+                    showToast("Lỗi đọc file JSON!", true);
+                }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function exportCSV() {
+            const headers = ["Tên thẻ", "Mã thẻ", "Hệ thẻ", "Khách hàng", "Đợt gửi", "Gói PSA", "Số lượng", "Phí PSA (JPY)", "Thu khách (JPY)", "Trạng thái", "Điểm số", "Số Cert", "Ghi chú"];
+            const rows = appState.cards.map(c => {
+                const batchName = appState.batches.find(b => b.id === c.batchId)?.name || '';
+                return [
+                    c.name, c.code, c.tcg, c.customer, batchName, c.serviceTier,
+                    c.qty, c.psaCost, c.customerPrice, c.status, c.grade, c.cert, c.notes
+                ].map(val => `"${String(val || '').replace(/"/g, '""')}"`).join(',');
+            });
+
+            // Thêm BOM \uFEFF để Excel hiển thị chuẩn tiếng Việt có dấu
+            const csvContent = "\uFEFF" + [headers.join(','), ...rows].join('\n');
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const dateStr = new Date().toISOString().slice(0, 10);
+            a.href = url;
+            a.download = `PSA_Cards_${dateStr}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast("Đã xuất file bảng tính CSV");
+        }
+
+        // ================= XUẤT & ĐỒNG BỘ GOOGLE SHEETS ("CHẤM PSA") =================
+        const STATUS_LABELS_VI = {
+            preparing: 'Chuẩn bị / Soi thẻ',
+            shipped: 'Đã gửi đi PSA',
+            grading: 'Đang chấm tại PSA',
+            graded: 'Đã có điểm / Về tay',
+            returned: 'Đã trả khách'
+        };
+
+        // Chuẩn bị mảng dữ liệu chuẩn 10 cột cho Google Sheets
+        function buildGoogleSheetsRows() {
+            const overheadMap = getBatchOverheadPerCardMap();
+            const nowStr = new Date().toLocaleString('vi-VN', {
+                hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric'
+            });
+
+            const headers = [
+                "Sản phẩm",
+                "Số lượng",
+                "Khách hàng",
+                "Ngày giờ",
+                "Gói chấm",
+                "Giá tiền (¥)",
+                "Tình trạng đơn hàng",
+                "Chi phí PSA (¥)",
+                "Lợi nhuận (¥)",
+                "Đợt gửi"
+            ];
+
+            const rows = appState.cards.map(c => {
+                const qty = Number(c.qty) || 1;
+                const overhead = c.batchId ? (overheadMap[c.batchId] || 0) : 0;
+                const totalCost = Math.round(((Number(c.psaCost) || 0) + overhead) * qty);
+                const totalPrice = Math.round((Number(c.customerPrice) || 0) * qty);
+                const isPersonal = !c.customer || c.customer.trim().toLowerCase() === 'cá nhân';
+                const profit = isPersonal ? 0 : (totalPrice - totalCost);
+                const batchName = appState.batches.find(b => b.id === c.batchId)?.name || 'Chưa phân đợt';
+                const productDisplay = c.code ? `${c.name} (${c.code}) [${c.tcg}]` : `${c.name} [${c.tcg}]`;
+                const statusDisplay = `${STATUS_LABELS_VI[c.status] || c.status} - ${c.grade || ''}${c.cert ? ' (Cert: ' + c.cert + ')' : ''}`;
+
+                return [
+                    productDisplay,
+                    qty,
+                    c.customer || 'Cá nhân',
+                    nowStr,
+                    c.serviceTier || 'Value Bulk',
+                    totalPrice,
+                    statusDisplay,
+                    totalCost,
+                    profit,
+                    batchName
+                ];
+            });
+
+            return [headers, ...rows];
+        }
+
+        // Cách 1: Copy định dạng TSV vào Clipboard và mở thẳng https://sheets.new
+        function exportAndOpenGoogleSheets() {
+            if (appState.cards.length === 0) {
+                showToast("Danh sách thẻ đang trống!", true);
+                return;
+            }
+
+            const rows = buildGoogleSheetsRows();
+            // Chuyển thành TSV (Tab-Separated Values) để khi dán vào Google Sheets tự chia đúng từng cột
+            const tsvText = rows.map(row =>
+                row.map(cell => String(cell ?? '').replace(/[\t\r\n]+/g, ' ')).join('\t')
+            ).join('\n');
+
+            // Sao chép bằng textarea ẩn + document.execCommand('copy') để tương thích tốt nhất trên iOS Safari / iFrame
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = tsvText;
+            tempTextArea.style.position = 'fixed';
+            tempTextArea.style.left = '-9999px';
+            tempTextArea.style.top = '0';
+            document.body.appendChild(tempTextArea);
+            tempTextArea.focus();
+            tempTextArea.select();
+
+            let copied = false;
+            try {
+                copied = document.execCommand('copy');
+            } catch (err) {
+                copied = false;
+            }
+            document.body.removeChild(tempTextArea);
+
+            if (copied) {
+                showToast("Đã chép bảng! Hãy chọn ô A1 và Dán (Paste)");
+            } else {
+                showToast("Đang mở Google Sheets...", false);
+            }
+
+            setTimeout(() => {
+                window.open('https://sheets.new', '_blank');
+            }, 350);
+        }
+
+        // Lưu Webhook URL
+        function saveWebhookUrl(url) {
+            appState.gsWebhookUrl = (url || '').trim();
+            saveData();
+            if (appState.gsWebhookUrl) {
+                showToast("Đã lưu Google Sheets Webhook URL");
+            }
+        }
+
+        // Cách 2: Gửi dữ liệu trực tiếp qua Google Apps Script Webhook
+        async function pushToGoogleSheets() {
+            const url = (appState.gsWebhookUrl || document.getElementById('gsWebhookInput').value || '').trim();
+            if (!url) {
+                showToast("Vui lòng nhập Webhook URL trước!", true);
+                document.getElementById('gsWebhookInput').focus();
+                return;
+            }
+            if (!url.startsWith('https://script.google.com/')) {
+                showToast("URL phải bắt đầu bằng https://script.google.com/", true);
+                return;
+            }
+
+            const btn = document.getElementById('pushGsBtn');
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang đẩy dữ liệu lên Sheets...`;
+
+            try {
+                const rows = buildGoogleSheetsRows();
+                // Dùng mode 'no-cors' với Content-Type 'text/plain' để vượt qua giới hạn CORS của Google Apps Script trên Safari
+                await fetch(url, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'text/plain;charset=utf-8'
+                    },
+                    body: JSON.stringify({
+                        sheetName: 'Chấm PSA',
+                        rows: rows
+                    })
+                });
+
+                showToast(`Đã đẩy ${rows.length - 1} dòng lên Google Sheets!`);
+            } catch (error) {
+                console.error("Lỗi đồng bộ Google Sheets:", error);
+                showToast("Không thể kết nối Webhook. Kiểm tra lại mạng hoặc URL!", true);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        }
+
+        // Modal xem và copy mã Google Apps Script
+        function openScriptModal() {
+            const modal = document.getElementById('scriptModal');
+            const backdrop = modal.querySelector('.bottom-sheet-backdrop');
+            const panel = document.getElementById('scriptModalPanel');
+
+            modal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                backdrop.classList.remove('opacity-0');
+                panel.classList.remove('translate-y-full');
+            });
+        }
+
+        function closeScriptModal() {
+            const modal = document.getElementById('scriptModal');
+            const backdrop = modal.querySelector('.bottom-sheet-backdrop');
+            const panel = document.getElementById('scriptModalPanel');
+
+            backdrop.classList.add('opacity-0');
+            panel.classList.add('translate-y-full');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        function copyAppsScriptCode() {
+            const codeArea = document.getElementById('appsScriptCodeArea');
+            codeArea.focus();
+            codeArea.select();
+            codeArea.setSelectionRange(0, 99999);
+
+            try {
+                document.execCommand('copy');
+                showToast("Đã sao chép mã Google Apps Script!");
+            } catch (e) {
+                showToast("Không thể tự sao chép, hãy giữ để copy thủ công", true);
+            }
+        }
+
+        // ================= TIỆN ÍCH UI (TOAST, DIALOG, ESCAPE HTML) =================
+        let toastTimeout;
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toastMessage');
+            const icon = toast.querySelector('i');
+            document.getElementById('toastText').textContent = msg;
+            
+            icon.className = isError ? 'fa-solid fa-circle-exclamation text-psa-red' : 'fa-solid fa-circle-check text-ios-green';
+            toast.classList.remove('opacity-0');
+            
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('opacity-0');
+            }, 2500);
+        }
+
+        let confirmCallback = null;
+        function openConfirmDialog(title, body, onConfirm) {
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmBody').textContent = body;
+            confirmCallback = onConfirm;
+            document.getElementById('confirmDialog').classList.remove('hidden');
+        }
+
+        function closeConfirmDialog() {
+            document.getElementById('confirmDialog').classList.add('hidden');
+            confirmCallback = null;
+        }
+
+        document.getElementById('confirmOkBtn').onclick = function () {
+            if (confirmCallback) confirmCallback();
+            closeConfirmDialog();
+        };
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
