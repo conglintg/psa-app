@@ -22,10 +22,9 @@
       background-color: #f2f2f7;
       color: #1c1c1e;
       padding-top: var(--safe-top);
-      padding-bottom: calc(76px + var(--safe-bottom));
+      padding-bottom: calc(80px + var(--safe-bottom));
       overscroll-behavior-y: none;
     }
-    /* Prevent iOS auto-zoom on inputs */
     input, select, textarea {
       font-size: 16px !important;
     }
@@ -33,7 +32,7 @@
       position: sticky;
       top: 0;
       z-index: 30;
-      background: rgba(242, 242, 247, 0.85);
+      background: rgba(242, 242, 247, 0.9);
       backdrop-filter: blur(18px);
       -webkit-backdrop-filter: blur(18px);
       border-bottom: 0.5px solid rgba(60, 60, 67, 0.18);
@@ -44,7 +43,7 @@
       left: 0;
       right: 0;
       z-index: 40;
-      background: rgba(255, 255, 255, 0.92);
+      background: rgba(255, 255, 255, 0.94);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-top: 0.5px solid rgba(60, 60, 67, 0.2);
@@ -62,7 +61,7 @@
       z-index: 50;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.25s ease;
+      transition: opacity 0.22s ease;
     }
     .bottom-sheet-backdrop.open {
       opacity: 1;
@@ -80,7 +79,7 @@
       max-height: 92vh;
       overflow-y: auto;
       transform: translateY(100%);
-      transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+      transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
       padding-bottom: calc(20px + var(--safe-bottom));
     }
     .bottom-sheet.open {
@@ -103,19 +102,18 @@
       <div>
         <div class="flex items-center gap-2">
           <h1 class="text-xl font-bold tracking-tight text-gray-900">Chấm PSA</h1>
-          <!-- Live Sync Indicator Pill -->
           <span id="syncStatusPill" onclick="switchTab('settings')" class="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-gray-200 text-gray-600 transition">
             <span id="syncDot" class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
             <span id="syncText">Chưa nối Sheet</span>
           </span>
         </div>
-        <p class="text-xs text-gray-500 mt-0.5" id="headerSubtitle">Quản lý đơn & tự động đồng bộ</p>
+        <p class="text-xs text-gray-500 mt-0.5">Quản lý đơn & tự động đồng bộ</p>
       </div>
       <div class="flex items-center gap-2">
-        <button onclick="toggleCurrency()" id="currencyBtn" class="px-3 py-1.5 rounded-full bg-blue-600 text-white text-xs font-bold shadow-sm active:scale-95 transition">
+        <button type="button" onclick="toggleCurrency()" id="currencyBtn" class="px-3 py-1.5 rounded-full bg-blue-600 text-white text-xs font-bold shadow-sm active:scale-95 transition">
           ¥ JPY
         </button>
-        <button onclick="openCardModal()" class="w-9 h-9 rounded-full bg-gray-900 text-white flex items-center justify-center shadow-sm active:scale-95 transition" title="Thêm thẻ mới">
+        <button type="button" onclick="openCardModal()" class="w-9 h-9 rounded-full bg-gray-900 text-white flex items-center justify-center shadow-sm active:scale-95 transition" title="Thêm thẻ mới">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
         </button>
       </div>
@@ -127,7 +125,6 @@
 
     <!-- TAB 1: DANH SÁCH THẺ -->
     <section id="tab-cards" class="space-y-3">
-      <!-- Summary 2x2 Grid -->
       <div class="grid grid-cols-2 gap-2.5">
         <div class="ios-card p-3.5">
           <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Tổng số thẻ</div>
@@ -151,34 +148,29 @@
         </div>
       </div>
 
-      <!-- Search & Filter -->
       <div class="space-y-2">
         <div class="relative">
           <svg class="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1010.5 18a7.5 7.5 0 006.15-3.35z"/></svg>
           <input type="text" id="searchInput" oninput="renderCards()" placeholder="Tìm tên thẻ, mã số, tên khách..." class="w-full pl-9 pr-4 py-2.5 bg-white rounded-xl border border-gray-200/80 text-sm focus:outline-none focus:border-blue-500" />
         </div>
 
-        <!-- Customer / Status Filter Chips -->
         <div class="flex gap-1.5 overflow-x-auto no-scrollbar pb-1" id="filterChips">
-          <button onclick="setFilter('ALL')" data-filter="ALL" class="filter-chip px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-900 text-white whitespace-nowrap">Tất cả</button>
-          <button onclick="setFilter('Đang chấm')" data-filter="Đang chấm" class="filter-chip px-3 py-1.5 rounded-full text-xs font-semibold bg-white text-gray-600 whitespace-nowrap">Đang chấm</button>
-          <button onclick="setFilter('Đã trả thẻ')" data-filter="Đã trả thẻ" class="filter-chip px-3 py-1.5 rounded-full text-xs font-semibold bg-white text-gray-600 whitespace-nowrap">Đã trả thẻ</button>
-          <button onclick="setFilter('Chờ thanh toán')" data-filter="Chờ thanh toán" class="filter-chip px-3 py-1.5 rounded-full text-xs font-semibold bg-white text-gray-600 whitespace-nowrap">Chờ thanh toán</button>
+          <button type="button" onclick="setFilter('ALL')" data-filter="ALL" class="filter-chip px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-900 text-white whitespace-nowrap">Tất cả</button>
+          <button type="button" onclick="setFilter('Đang chấm')" data-filter="Đang chấm" class="filter-chip px-3 py-1.5 rounded-full text-xs font-semibold bg-white text-gray-600 whitespace-nowrap">Đang chấm</button>
+          <button type="button" onclick="setFilter('Đã trả thẻ')" data-filter="Đã trả thẻ" class="filter-chip px-3 py-1.5 rounded-full text-xs font-semibold bg-white text-gray-600 whitespace-nowrap">Đã trả thẻ</button>
+          <button type="button" onclick="setFilter('Chờ thanh toán')" data-filter="Chờ thanh toán" class="filter-chip px-3 py-1.5 rounded-full text-xs font-semibold bg-white text-gray-600 whitespace-nowrap">Chờ thanh toán</button>
         </div>
       </div>
 
-      <!-- Card List -->
       <div id="cardList" class="space-y-2.5"></div>
     </section>
 
     <!-- TAB 2: ĐỢT GỬI & KHÁCH HÀNG -->
     <section id="tab-batches" class="hidden space-y-3">
       <div class="ios-card p-4">
-        <div class="flex items-center justify-between mb-3">
-          <div>
-            <h2 class="text-base font-bold text-gray-900">Thống kê theo Khách hàng</h2>
-            <p class="text-xs text-gray-500">Tổng hợp số lượng thẻ, giá thu và phí từng khách</p>
-          </div>
+        <div class="mb-3">
+          <h2 class="text-base font-bold text-gray-900">Thống kê theo Khách hàng</h2>
+          <p class="text-xs text-gray-500">Tổng hợp số lượng thẻ, giá thu và phí từng khách</p>
         </div>
         <div id="customerSummaryList" class="space-y-2.5"></div>
       </div>
@@ -189,7 +181,7 @@
             <h2 class="text-base font-bold text-gray-900">Quản lý Đợt gửi (Batch)</h2>
             <p class="text-xs text-gray-500">Phí ship / bảo hiểm đợt gửi tự chia đều cho từng thẻ</p>
           </div>
-          <button onclick="openBatchModal()" class="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 text-xs font-bold active:scale-95">+ Đợt mới</button>
+          <button type="button" onclick="openBatchModal()" class="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 text-xs font-bold active:scale-95">+ Đợt mới</button>
         </div>
         <div id="batchList" class="space-y-2.5"></div>
       </div>
@@ -197,14 +189,11 @@
 
     <!-- TAB 3: SAO LƯU & ĐỒNG BỘ GOOGLE SHEETS -->
     <section id="tab-settings" class="hidden space-y-3">
-      <!-- Auto Sync Webhook Card -->
       <div class="ios-card p-4 space-y-3 border-2 border-emerald-500/20">
-        <div class="flex items-start justify-between gap-2">
-          <div>
-            <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 mb-1">Tự động 2 chiều</span>
-            <h2 class="text-base font-bold text-gray-900">Tự động đồng bộ Google Sheets</h2>
-            <p class="text-xs text-gray-500 mt-0.5">Mỗi khi bạn thêm, sửa hoặc xóa thẻ, app tự động cập nhật file <b>Chấm PSA</b> sau 1.5 giây.</p>
-          </div>
+        <div>
+          <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 mb-1">Tự động 2 chiều</span>
+          <h2 class="text-base font-bold text-gray-900">Tự động đồng bộ Google Sheets</h2>
+          <p class="text-xs text-gray-500 mt-0.5">Mỗi khi bạn thêm, sửa hoặc xóa thẻ, app tự động cập nhật file <b>Chấm PSA</b> sau 1.5 giây.</p>
         </div>
 
         <div class="space-y-2">
@@ -221,11 +210,11 @@
         </div>
 
         <div class="grid grid-cols-2 gap-2 pt-1">
-          <button onclick="syncToGoogleSheets(true)" id="manualSyncBtn" class="py-2.5 px-3 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-sm active:scale-95 transition flex items-center justify-center gap-1.5">
+          <button type="button" onclick="syncToGoogleSheets(true)" id="manualSyncBtn" class="py-2.5 px-3 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-sm active:scale-95 transition flex items-center justify-center gap-1.5">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
             <span>Đồng bộ ngay</span>
           </button>
-          <button onclick="openScriptModal()" class="py-2.5 px-3 rounded-xl bg-gray-100 text-gray-800 text-xs font-bold active:scale-95 transition">
+          <button type="button" onclick="openScriptModal()" class="py-2.5 px-3 rounded-xl bg-gray-100 text-gray-800 text-xs font-bold active:scale-95 transition">
             Xem mã Script chuẩn
           </button>
         </div>
@@ -235,7 +224,6 @@
         </div>
       </div>
 
-      <!-- Currency & Rate -->
       <div class="ios-card p-4 space-y-3">
         <h3 class="text-sm font-bold text-gray-900">Tỷ giá quy đổi (JPY → VNĐ)</h3>
         <div class="flex items-center gap-2">
@@ -245,22 +233,21 @@
         </div>
       </div>
 
-      <!-- Backup & Restore JSON / CSV -->
       <div class="ios-card p-4 space-y-2.5">
         <h3 class="text-sm font-bold text-gray-900">Sao lưu & Khôi phục dữ liệu</h3>
         <p class="text-xs text-gray-500">Nạp file JSON 34 đơn hàng từ Sheet hoặc xuất file Excel CSV dự phòng.</p>
         <div class="grid grid-cols-2 gap-2 pt-1">
-          <button onclick="exportJSON()" class="py-2.5 px-3 rounded-xl bg-blue-50 text-blue-700 text-xs font-bold active:scale-95">
+          <button type="button" onclick="exportJSON()" class="py-2.5 px-3 rounded-xl bg-blue-50 text-blue-700 text-xs font-bold active:scale-95">
             Xuất file .JSON
           </button>
           <label class="py-2.5 px-3 rounded-xl bg-indigo-50 text-indigo-700 text-xs font-bold text-center cursor-pointer active:scale-95">
             Nhập file .JSON
             <input type="file" accept=".json" onchange="importJSON(event)" class="hidden" />
           </label>
-          <button onclick="exportCSV()" class="py-2.5 px-3 rounded-xl bg-gray-100 text-gray-700 text-xs font-bold active:scale-95">
+          <button type="button" onclick="exportCSV()" class="py-2.5 px-3 rounded-xl bg-gray-100 text-gray-700 text-xs font-bold active:scale-95">
             Xuất Excel (.CSV)
           </button>
-          <button onclick="copyForSheets()" class="py-2.5 px-3 rounded-xl bg-gray-100 text-gray-700 text-xs font-bold active:scale-95">
+          <button type="button" onclick="copyForSheets()" class="py-2.5 px-3 rounded-xl bg-gray-100 text-gray-700 text-xs font-bold active:scale-95">
             Copy dán thủ công
           </button>
         </div>
@@ -272,29 +259,29 @@
   <!-- BOTTOM NAVIGATION BAR -->
   <nav class="ios-tabbar">
     <div class="max-w-lg mx-auto grid grid-cols-3 h-14">
-      <button onclick="switchTab('cards')" id="nav-cards" class="flex flex-col items-center justify-center text-blue-600">
+      <button type="button" onclick="switchTab('cards')" id="nav-cards" class="flex flex-col items-center justify-center text-blue-600">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
         <span class="text-[10px] font-semibold mt-0.5">Danh sách thẻ</span>
       </button>
-      <button onclick="switchTab('batches')" id="nav-batches" class="flex flex-col items-center justify-center text-gray-400">
+      <button type="button" onclick="switchTab('batches')" id="nav-batches" class="flex flex-col items-center justify-center text-gray-400">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
         <span class="text-[10px] font-semibold mt-0.5">Khách & Đợt gửi</span>
       </button>
-      <button onclick="switchTab('settings')" id="nav-settings" class="flex flex-col items-center justify-center text-gray-400">
+      <button type="button" onclick="switchTab('settings')" id="nav-settings" class="flex flex-col items-center justify-center text-gray-400">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
         <span class="text-[10px] font-semibold mt-0.5">Đồng bộ & Cài đặt</span>
       </button>
     </div>
   </nav>
 
-  <!-- MODAL: THÊM / SỬA THẺ (BOTTOM SHEET) -->
+  <!-- MODAL: THÊM / SỬA THẺ -->
   <div id="cardModalBackdrop" class="bottom-sheet-backdrop" onclick="closeCardModal()"></div>
   <div id="cardModal" class="bottom-sheet px-4 pt-3">
     <div class="max-w-lg mx-auto">
       <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-3"></div>
       <div class="flex items-center justify-between mb-3">
         <h3 class="text-lg font-bold text-gray-900" id="cardModalTitle">Thêm thẻ gửi PSA</h3>
-        <button onclick="closeCardModal()" class="text-sm font-semibold text-gray-500 px-2 py-1">Đóng</button>
+        <button type="button" onclick="closeCardModal()" class="text-sm font-semibold text-gray-500 px-2 py-1">Đóng</button>
       </div>
 
       <form id="cardForm" onsubmit="saveCard(event)" class="space-y-3">
@@ -380,7 +367,7 @@
       <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto"></div>
       <div class="flex items-center justify-between">
         <h3 class="text-lg font-bold">Tạo đợt gửi PSA mới</h3>
-        <button onclick="closeBatchModal()" class="text-sm text-gray-500">Đóng</button>
+        <button type="button" onclick="closeBatchModal()" class="text-sm text-gray-500">Đóng</button>
       </div>
       <div class="ios-card p-3.5 space-y-3">
         <div>
@@ -392,7 +379,7 @@
           <input type="number" id="batchExtraFeeInput" value="0" class="w-full px-3 py-2 rounded-xl bg-gray-50 border border-gray-200" />
         </div>
       </div>
-      <button onclick="saveBatch()" class="w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-sm">Lưu đợt gửi</button>
+      <button type="button" onclick="saveBatch()" class="w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-sm">Lưu đợt gửi</button>
     </div>
   </div>
 
@@ -403,9 +390,9 @@
       <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto"></div>
       <div class="flex items-center justify-between">
         <h3 class="text-base font-bold">Mã Google Apps Script (Khớp 8 cột Chấm PSA)</h3>
-        <button onclick="closeScriptModal()" class="text-sm text-gray-500">Đóng</button>
+        <button type="button" onclick="closeScriptModal()" class="text-sm text-gray-500">Đóng</button>
       </div>
-      <p class="text-xs text-gray-600">Dán mã này vào <b>Tiện ích mở rộng > Apps Script</b> trong file Google Sheets <b>Chấm PSA</b>, sau đó chọn <b>Triển khai > Ứng dụng web (Bất kỳ ai)</b>.</p>
+      <p class="text-xs text-gray-600">Dán mã này vào <b>Tiện ích mở rộng &gt; Apps Script</b> trong file Google Sheets <b>Chấm PSA</b>, sau đó chọn <b>Triển khai &gt; Ứng dụng web (Bất kỳ ai)</b>.</p>
       <pre id="appsScriptCodeBlock" class="bg-gray-900 text-emerald-300 p-3 rounded-xl text-[11px] overflow-x-auto leading-relaxed">function doPost(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -442,7 +429,7 @@
       .setMimeType(ContentService.MimeType.JSON);
   }
 }</pre>
-      <button onclick="copyScriptCode()" class="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm active:scale-95">Sao chép đoạn mã này</button>
+      <button type="button" onclick="copyScriptCode()" class="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm active:scale-95">Sao chép đoạn mã này</button>
     </div>
   </div>
 
@@ -495,7 +482,6 @@
       }
     }
 
-    // Debounced auto-sync (waits 1.5s after last change before sending to Google Sheets)
     function scheduleAutoSync() {
       updateSyncBadge('syncing');
       if (autoSyncTimer) clearTimeout(autoSyncTimer);
@@ -536,7 +522,6 @@
     }
 
     function buildRowsForSheet() {
-      // Matches 10-element array expected by the Apps Script mapper
       return state.cards.map(c => {
         const batch = state.batches.find(b => b.id === c.batchId);
         const batchName = batch ? batch.name : 'Đợt 1';
@@ -573,7 +558,6 @@
       };
 
       try {
-        // Use no-cors with text/plain to bypass Google Apps Script CORS preflight on iOS Safari
         await fetch(url, {
           method: 'POST',
           mode: 'no-cors',
@@ -741,7 +725,6 @@
     }
 
     function renderCustomersAndBatches() {
-      // Group by customer
       const map = {};
       state.cards.forEach(c => {
         const name = (c.customer || 'Khách lẻ').trim();
@@ -771,7 +754,6 @@
         `).join('');
       }
 
-      // Batches
       const batchEl = document.getElementById('batchList');
       batchEl.innerHTML = state.batches.map(b => {
         const count = state.cards
@@ -795,7 +777,6 @@
         .join('');
     }
 
-    // Modal handlers
     function openCardModal(cardId = null) {
       const batchSelect = document.getElementById('fieldBatch');
       batchSelect.innerHTML = state.batches
@@ -874,7 +855,7 @@
       }
 
       closeCardModal();
-      saveState(true); // Automatically triggers Google Sheets sync if configured
+      saveState(true);
     }
 
     function deleteCurrentCard() {
@@ -884,10 +865,9 @@
       state.cards = state.cards.filter(c => c.id !== id);
       closeCardModal();
       showToast('Đã xóa thẻ!');
-      saveState(true); // Automatically triggers Google Sheets sync
+      saveState(true);
     }
 
-    // Batch Modal
     function openBatchModal() {
       document.getElementById('batchModalBackdrop').classList.add('open');
       document.getElementById('batchModal').classList.add('open');
@@ -911,7 +891,6 @@
       showToast('Đã tạo đợt gửi mới!');
     }
 
-    // Script Modal
     function openScriptModal() {
       document.getElementById('scriptModalBackdrop').classList.add('open');
       document.getElementById('scriptModal').classList.add('open');
@@ -925,7 +904,6 @@
       navigator.clipboard.writeText(code).then(() => showToast('Đã sao chép mã Apps Script!'));
     }
 
-    // Settings
     function saveWebhookConfig() {
       state.webhookUrl = document.getElementById('webhookUrlInput').value.trim();
       state.autoSync = document.getElementById('autoSyncToggle').checked;
@@ -940,7 +918,6 @@
       showToast('Đã cập nhật tỷ giá!');
     }
 
-    // Export / Import
     function exportJSON() {
       const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
@@ -991,10 +968,9 @@
       const rows = state.cards.map(c => [
         c.customer, c.product, c.qty || 1, c.date, c.days, c.price, c.fee, c.status
       ]);
-      const csvContent = '﻿' + [headers, ...rows]
+      const csvContent = '\uFEFF' + [headers, ...rows]
         .map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
-        .join('
-');
+        .join('\n');
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -1005,12 +981,10 @@
     function copyForSheets() {
       const rows = state.cards.map(c => [
         c.customer, c.product, c.qty || 1, c.date, c.days, c.price, c.fee, c.status
-      ].join('	')).join('
-');
+      ].join('\t')).join('\n');
       navigator.clipboard.writeText(rows).then(() => showToast('Đã copy bảng! Mở Sheet và dán vào ô A3.'));
     }
 
-    // Navigation
     function switchTab(tab) {
       ['cards', 'batches', 'settings'].forEach(t => {
         document.getElementById('tab-' + t).classList.toggle('hidden', t !== tab);
