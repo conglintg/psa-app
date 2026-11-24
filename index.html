@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Chấm PSA" />
-  <title>Chấm PSA - Quản Lý & Tự Động Đồng Bộ</title>
+  <title>Chấm PSA - Ghi Nối Tiếp Google Sheets</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root {
@@ -107,7 +107,7 @@
             <span id="syncText">Chưa nối Sheet</span>
           </span>
         </div>
-        <p class="text-xs text-gray-500 mt-0.5">Quản lý đơn & tự động đồng bộ</p>
+        <p class="text-xs text-gray-500 mt-0.5">Chế độ ghi nối tiếp vào cuối bảng</p>
       </div>
       <div class="flex items-center gap-2">
         <button type="button" onclick="toggleCurrency()" id="currencyBtn" class="px-3 py-1.5 rounded-full bg-blue-600 text-white text-xs font-bold shadow-sm active:scale-95 transition">
@@ -127,7 +127,7 @@
     <section id="tab-cards" class="space-y-3">
       <div class="grid grid-cols-2 gap-2.5">
         <div class="ios-card p-3.5">
-          <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Tổng số thẻ</div>
+          <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Tổng số thẻ (App)</div>
           <div class="text-2xl font-extrabold text-gray-900 mt-0.5" id="statTotalCards">0</div>
           <div class="text-[11px] text-gray-500 mt-0.5" id="statCustomers">0 khách hàng</div>
         </div>
@@ -191,9 +191,9 @@
     <section id="tab-settings" class="hidden space-y-3">
       <div class="ios-card p-4 space-y-3 border-2 border-emerald-500/20">
         <div>
-          <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 mb-1">Tự động 2 chiều</span>
-          <h2 class="text-base font-bold text-gray-900">Tự động đồng bộ Google Sheets</h2>
-          <p class="text-xs text-gray-500 mt-0.5">Mỗi khi bạn thêm, sửa hoặc xóa thẻ, app tự động cập nhật file <b>Chấm PSA</b> sau 1.5 giây.</p>
+          <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 mb-1">Chế độ Ghi nối tiếp (Append)</span>
+          <h2 class="text-base font-bold text-gray-900">Tự động nối thêm dòng vào Sheet</h2>
+          <p class="text-xs text-gray-500 mt-0.5">Mỗi thẻ mới nhập sẽ được nối thẳng xuống dòng trống cuối cùng của file <b>Chấm PSA</b>, <b>không xóa dữ liệu cũ</b>.</p>
         </div>
 
         <div class="space-y-2">
@@ -203,24 +203,24 @@
 
         <div class="flex items-center justify-between py-2 px-3 rounded-xl bg-gray-50">
           <div>
-            <div class="text-xs font-bold text-gray-800">Tự động đẩy khi thay đổi dữ liệu</div>
-            <div class="text-[11px] text-gray-500">Tự chạy ngầm sau khi Lưu hoặc Xóa thẻ</div>
+            <div class="text-xs font-bold text-gray-800">Tự động đẩy thẻ mới lên Sheet</div>
+            <div class="text-[11px] text-gray-500">Chỉ đẩy các thẻ chưa từng gửi lên Sheet</div>
           </div>
           <input type="checkbox" id="autoSyncToggle" onchange="saveWebhookConfig()" checked class="w-5 h-5 accent-emerald-600 rounded" />
         </div>
 
         <div class="grid grid-cols-2 gap-2 pt-1">
-          <button type="button" onclick="syncToGoogleSheets(true)" id="manualSyncBtn" class="py-2.5 px-3 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-sm active:scale-95 transition flex items-center justify-center gap-1.5">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-            <span>Đồng bộ ngay</span>
+          <button type="button" onclick="syncUnsentCards(true)" id="manualSyncBtn" class="py-2.5 px-3 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-sm active:scale-95 transition flex items-center justify-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            <span>Đẩy thẻ mới (<span id="unsentCountBadge">0</span>)</span>
           </button>
           <button type="button" onclick="openScriptModal()" class="py-2.5 px-3 rounded-xl bg-gray-100 text-gray-800 text-xs font-bold active:scale-95 transition">
-            Xem mã Script chuẩn
+            Xem mã Script nối tiếp
           </button>
         </div>
 
         <div id="lastSyncLog" class="text-[11px] text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
-          Trạng thái: Chưa thực hiện đồng bộ trong phiên này.
+          Trạng thái: Sẵn sàng ghi nối tiếp vào cuối Sheet.
         </div>
       </div>
 
@@ -235,7 +235,7 @@
 
       <div class="ios-card p-4 space-y-2.5">
         <h3 class="text-sm font-bold text-gray-900">Sao lưu & Khôi phục dữ liệu</h3>
-        <p class="text-xs text-gray-500">Nạp file JSON 34 đơn hàng từ Sheet hoặc xuất file Excel CSV dự phòng.</p>
+        <p class="text-xs text-gray-500">Nạp file JSON (tự động đánh dấu đã có trên Sheet để không bị đẩy trùng) hoặc xuất CSV.</p>
         <div class="grid grid-cols-2 gap-2 pt-1">
           <button type="button" onclick="exportJSON()" class="py-2.5 px-3 rounded-xl bg-blue-50 text-blue-700 text-xs font-bold active:scale-95">
             Xuất file .JSON
@@ -353,7 +353,7 @@
             Xóa
           </button>
           <button type="submit" class="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm shadow-md active:scale-95 transition">
-            Lưu & Tự động đồng bộ
+            Lưu & Nối tiếp vào Sheet
           </button>
         </div>
       </form>
@@ -383,16 +383,16 @@
     </div>
   </div>
 
-  <!-- MODAL: XEM MÃ APPS SCRIPT CHUẨN -->
+  <!-- MODAL: XEM MÃ APPS SCRIPT GHI NỐI TIẾP -->
   <div id="scriptModalBackdrop" class="bottom-sheet-backdrop" onclick="closeScriptModal()"></div>
   <div id="scriptModal" class="bottom-sheet px-4 pt-3">
     <div class="max-w-lg mx-auto space-y-3">
       <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto"></div>
       <div class="flex items-center justify-between">
-        <h3 class="text-base font-bold">Mã Google Apps Script (Khớp 8 cột Chấm PSA)</h3>
+        <h3 class="text-base font-bold">Mã Google Apps Script (Ghi nối tiếp - Append)</h3>
         <button type="button" onclick="closeScriptModal()" class="text-sm text-gray-500">Đóng</button>
       </div>
-      <p class="text-xs text-gray-600">Dán mã này vào <b>Tiện ích mở rộng &gt; Apps Script</b> trong file Google Sheets <b>Chấm PSA</b>, sau đó chọn <b>Triển khai &gt; Ứng dụng web (Bất kỳ ai)</b>.</p>
+      <p class="text-xs text-gray-600">Mã này tìm dòng trống cuối cùng trong file <b>Chấm PSA</b> và nối tiếp dữ liệu mới vào bên dưới, không bao giờ xóa dữ liệu cũ.</p>
       <pre id="appsScriptCodeBlock" class="bg-gray-900 text-emerald-300 p-3 rounded-xl text-[11px] overflow-x-auto leading-relaxed">function doPost(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -415,14 +415,12 @@
     });
 
     if (formattedRows.length > 0) {
-      var lastRow = sheet.getLastRow();
-      if (lastRow > 2) {
-        sheet.getRange(3, 1, lastRow - 2, 8).clearContent();
-      }
-      sheet.getRange(3, 1, formattedRows.length, 8).setValues(formattedRows);
+      // Ghi nối tiếp ngay sau dòng cuối cùng đang có dữ liệu (tối thiểu từ dòng 3)
+      var startRow = Math.max(sheet.getLastRow() + 1, 3);
+      sheet.getRange(startRow, 1, formattedRows.length, 8).setValues(formattedRows);
     }
 
-    return ContentService.createTextOutput(JSON.stringify({ status: "success", count: formattedRows.length }))
+    return ContentService.createTextOutput(JSON.stringify({ status: "success", appended: formattedRows.length }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() }))
@@ -437,7 +435,7 @@
   <div id="toast" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-gray-900/90 text-white px-4 py-2 rounded-full text-xs font-semibold shadow-lg opacity-0 pointer-events-none transition-opacity duration-200 whitespace-nowrap"></div>
 
   <script>
-    const STORAGE_KEY = 'psa_tracker_data_v2';
+    const STORAGE_KEY = 'psa_tracker_append_v3';
     let state = {
       currency: 'JPY',
       exchangeRate: 170,
@@ -447,12 +445,7 @@
       batches: [
         { id: 'batch_gsheet_1', name: 'Đợt 1 (Google Sheets)', extraFee: 0 }
       ],
-      cards: [
-        { id: 'sample_1', customer: 'Trần hậu vũ', product: 'kairyu 246/193', qty: 1, date: '03/11/2026', days: '120', price: 6000, fee: 1500, status: 'Đang chấm', batchId: 'batch_gsheet_1' },
-        { id: 'sample_2', customer: 'Mạnh lol', product: 'rugia 142/103', qty: 5, date: '03/11/2026', days: '80', price: 12000, fee: 1000, status: 'Đang chấm', batchId: 'batch_gsheet_1' },
-        { id: 'sample_3', customer: 'bảo việt car', product: 'rồng 137/103', qty: 1, date: '03/11/2026', days: '80', price: 12000, fee: 1500, status: 'Đang chấm', batchId: 'batch_gsheet_1' },
-        { id: 'sample_4', customer: 'hải', product: 'エーフィ043/040', qty: 2, date: '03/11/2026', days: '80', price: 12000, fee: 0, status: 'Đang chấm', batchId: 'batch_gsheet_1' }
-      ]
+      cards: []
     };
 
     let autoSyncTimer = null;
@@ -471,22 +464,32 @@
       document.getElementById('autoSyncToggle').checked = state.autoSync !== false;
       document.getElementById('exchangeRateInput').value = state.exchangeRate || 170;
       updateCurrencyBtn();
+      updateUnsentBadge();
       updateSyncBadge(state.webhookUrl ? 'ready' : 'disconnected');
     }
 
-    function saveState(triggerSync = false) {
+    function saveState(triggerAppendSync = false) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       renderAll();
-      if (triggerSync && state.autoSync && state.webhookUrl) {
+      updateUnsentBadge();
+      if (triggerAppendSync && state.autoSync && state.webhookUrl) {
         scheduleAutoSync();
       }
     }
 
+    function updateUnsentBadge() {
+      const unsentCount = state.cards.filter(c => !c.syncedToSheet).length;
+      const badge = document.getElementById('unsentCountBadge');
+      if (badge) badge.textContent = unsentCount;
+    }
+
     function scheduleAutoSync() {
+      const unsent = state.cards.filter(c => !c.syncedToSheet);
+      if (unsent.length === 0) return;
       updateSyncBadge('syncing');
       if (autoSyncTimer) clearTimeout(autoSyncTimer);
       autoSyncTimer = setTimeout(() => {
-        syncToGoogleSheets(false);
+        syncUnsentCards(false);
       }, 1500);
     }
 
@@ -503,16 +506,16 @@
       } else if (status === 'ready') {
         pill.className = 'cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-700';
         dot.className = 'w-1.5 h-1.5 rounded-full bg-blue-500';
-        text.textContent = 'Sẵn sàng đồng bộ';
+        text.textContent = 'Sẵn sàng nối tiếp';
       } else if (status === 'syncing') {
         pill.className = 'cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800';
         dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping';
-        text.textContent = 'Đang đồng bộ...';
+        text.textContent = 'Đang nối thêm...';
       } else if (status === 'synced') {
         pill.className = 'cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-700';
         dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-500';
-        text.textContent = 'Đã đồng bộ Sheet';
-        if (log) log.textContent = customMsg || `Đồng bộ thành công lúc ${new Date().toLocaleTimeString('vi-VN')}`;
+        text.textContent = 'Đã nối vào Sheet';
+        if (log) log.textContent = customMsg || `Đã nối thêm thành công lúc ${new Date().toLocaleTimeString('vi-VN')}`;
       } else if (status === 'error') {
         pill.className = 'cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-red-100 text-red-700';
         dot.className = 'w-1.5 h-1.5 rounded-full bg-red-500';
@@ -521,29 +524,27 @@
       }
     }
 
-    function buildRowsForSheet() {
-      return state.cards.map(c => {
-        const batch = state.batches.find(b => b.id === c.batchId);
-        const batchName = batch ? batch.name : 'Đợt 1';
-        const price = Number(c.price) || 0;
-        const fee = Number(c.fee) || 0;
-        const profit = price - fee;
-        return [
-          c.product || c.name || '',
-          Number(c.qty || c.quantity) || 1,
-          c.customer || '',
-          c.date || '',
-          c.days ? `${c.days} ngày` : (c.tier || '120 ngày'),
-          price,
-          c.status || 'Đang chấm',
-          fee,
-          profit,
-          batchName
-        ];
-      });
+    function formatCardRow(c) {
+      const batch = state.batches.find(b => b.id === c.batchId);
+      const batchName = batch ? batch.name : 'Đợt 1';
+      const price = Number(c.price) || 0;
+      const fee = Number(c.fee) || 0;
+      const profit = price - fee;
+      return [
+        c.product || c.name || '',
+        Number(c.qty || c.quantity) || 1,
+        c.customer || '',
+        c.date || '',
+        c.days ? `${c.days} ngày` : (c.tier || '120 ngày'),
+        price,
+        c.status || 'Đang chấm',
+        fee,
+        profit,
+        batchName
+      ];
     }
 
-    async function syncToGoogleSheets(isManual = false) {
+    async function syncUnsentCards(isManual = false) {
       const url = (state.webhookUrl || '').trim();
       if (!url) {
         if (isManual) showToast('Vui lòng dán Webhook URL trước!');
@@ -551,9 +552,19 @@
         return;
       }
 
+      const unsentCards = state.cards.filter(c => !c.syncedToSheet);
+      if (unsentCards.length === 0) {
+        if (isManual) showToast('Tất cả thẻ đã được đẩy lên Sheet rồi!');
+        updateSyncBadge('synced', 'Không có thẻ mới nào cần đẩy thêm.');
+        return;
+      }
+
       updateSyncBadge('syncing');
+      // Reverse so older-entered items in the batch append in chronological order
+      const orderedToAppend = [...unsentCards].reverse();
       const payload = {
-        rows: buildRowsForSheet(),
+        mode: 'append',
+        rows: orderedToAppend.map(formatCardRow),
         updatedAt: new Date().toISOString()
       };
 
@@ -565,13 +576,20 @@
           body: JSON.stringify(payload)
         });
 
+        // Mark these cards as synced so they won't be duplicated next time
+        const syncedIds = new Set(unsentCards.map(c => c.id));
+        state.cards = state.cards.map(c => syncedIds.has(c.id) ? { ...c, syncedToSheet: true } : c);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        renderCards();
+        updateUnsentBadge();
+
         const timeStr = new Date().toLocaleTimeString('vi-VN');
-        updateSyncBadge('synced', `Đã đẩy ${payload.rows.length} dòng lên Chấm PSA lúc ${timeStr}`);
-        if (isManual) showToast(`Đã đồng bộ ${payload.rows.length} dòng lên Sheet!`);
+        updateSyncBadge('synced', `Đã nối thêm ${unsentCards.length} dòng mới vào cuối Sheet lúc ${timeStr}`);
+        if (isManual) showToast(`Đã nối thêm ${unsentCards.length} dòng vào Sheet!`);
       } catch (err) {
         console.error('Sync error:', err);
         updateSyncBadge('error', `Lỗi đồng bộ: ${err.message}`);
-        if (isManual) showToast('Lỗi mạng khi đồng bộ Google Sheets!');
+        if (isManual) showToast('Lỗi mạng khi nối dữ liệu Google Sheets!');
       }
     }
 
@@ -670,8 +688,8 @@
       if (filtered.length === 0) {
         listEl.innerHTML = `
           <div class="ios-card p-8 text-center text-gray-400">
-            <p class="text-sm font-semibold">Không tìm thấy thẻ nào</p>
-            <p class="text-xs mt-1">Bấm nút + ở góc trên để thêm thẻ mới</p>
+            <p class="text-sm font-semibold">Chưa có thẻ nào trong danh sách</p>
+            <p class="text-xs mt-1">Bấm nút <b>+</b> ở góc trên để thêm thẻ mới (tự nối tiếp vào Sheet)</p>
           </div>`;
         return;
       }
@@ -688,11 +706,15 @@
         else if (status === 'Chờ thanh toán') badgeClass = 'bg-red-100 text-red-700';
         else if (status === 'Mới nhận thẻ') badgeClass = 'bg-blue-100 text-blue-700';
 
+        const syncTag = c.syncedToSheet
+          ? `<span class="text-[10px] font-semibold text-emerald-600">✓ Đã lên Sheet</span>`
+          : `<span class="text-[10px] font-semibold text-amber-600">• Chờ đẩy Sheet</span>`;
+
         return `
           <div onclick="openCardModal('${c.id}')" class="ios-card p-3.5 active:scale-[0.99] transition cursor-pointer">
             <div class="flex items-start justify-between gap-2">
               <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-1.5">
+                <div class="flex items-center gap-1.5 flex-wrap">
                   <span class="px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 text-[11px] font-bold truncate max-w-[130px]">${escapeHtml(c.customer || 'Khách lẻ')}</span>
                   <span class="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[11px] font-bold">Gói ${escapeHtml(String(c.days || '120'))}d</span>
                   <span class="px-2 py-0.5 rounded-md ${badgeClass} text-[10px] font-bold">${escapeHtml(status)}</span>
@@ -701,7 +723,7 @@
               </div>
               <div class="text-right shrink-0">
                 <div class="text-xs font-extrabold text-gray-900 bg-gray-100 px-2 py-0.5 rounded-lg inline-block">x${qty} thẻ</div>
-                <div class="text-[11px] text-gray-400 mt-1">${escapeHtml(c.date || '')}</div>
+                <div class="mt-1">${syncTag}</div>
               </div>
             </div>
 
@@ -832,6 +854,8 @@
     function saveCard(e) {
       e.preventDefault();
       const id = document.getElementById('editCardId').value;
+      const existing = id ? state.cards.find(c => c.id === id) : null;
+
       const cardData = {
         id: id || ('card_' + Date.now()),
         customer: document.getElementById('fieldCustomer').value.trim(),
@@ -842,30 +866,32 @@
         fee: Number(document.getElementById('fieldFee').value) || 0,
         date: document.getElementById('fieldDate').value.trim(),
         status: document.getElementById('fieldStatus').value,
-        batchId: document.getElementById('fieldBatch').value
+        batchId: document.getElementById('fieldBatch').value,
+        syncedToSheet: existing ? Boolean(existing.syncedToSheet) : false
       };
 
       if (id) {
         const idx = state.cards.findIndex(c => c.id === id);
         if (idx !== -1) state.cards[idx] = cardData;
-        showToast('Đã cập nhật thẻ!');
+        showToast('Đã cập nhật trên App!');
+        closeCardModal();
+        saveState(false); // Do not duplicate already-appended rows on edit
       } else {
         state.cards.unshift(cardData);
-        showToast('Đã thêm thẻ mới!');
+        showToast('Đã thêm thẻ & chuẩn bị nối vào Sheet!');
+        closeCardModal();
+        saveState(true); // Append this new card to Google Sheets
       }
-
-      closeCardModal();
-      saveState(true);
     }
 
     function deleteCurrentCard() {
       const id = document.getElementById('editCardId').value;
       if (!id) return;
-      if (!confirm('Xóa thẻ này khỏi danh sách?')) return;
+      if (!confirm('Xóa thẻ này trên App? (Dữ liệu trên Google Sheets vẫn được giữ nguyên)')) return;
       state.cards = state.cards.filter(c => c.id !== id);
       closeCardModal();
-      showToast('Đã xóa thẻ!');
-      saveState(true);
+      showToast('Đã xóa thẻ trên App!');
+      saveState(false);
     }
 
     function openBatchModal() {
@@ -934,6 +960,8 @@
         try {
           const data = JSON.parse(e.target.result);
           if (Array.isArray(data.cards)) {
+            // Mark imported backup cards as already on Sheet so they don't get duplicated
+            const isFromSheetBackup = (data.source || '').includes('Sheet');
             state.cards = data.cards.map((c, i) => ({
               id: c.id || ('imp_' + i + '_' + Date.now()),
               customer: c.customer || '',
@@ -944,13 +972,14 @@
               fee: Number(c.fee || c.psaCost) || 0,
               date: c.date || '',
               status: c.status || 'Đang chấm',
-              batchId: c.batchId || state.batches[0]?.id || 'batch_gsheet_1'
+              batchId: c.batchId || state.batches[0]?.id || 'batch_gsheet_1',
+              syncedToSheet: isFromSheetBackup ? true : Boolean(c.syncedToSheet)
             }));
             if (Array.isArray(data.batches) && data.batches.length > 0) {
               state.batches = data.batches;
             }
-            saveState(true);
-            showToast(`Đã nhập thành công ${state.cards.length} dòng!`);
+            saveState(false);
+            showToast(`Đã nhập ${state.cards.length} dòng (đã đánh dấu có trên Sheet)!`);
             switchTab('cards');
           } else {
             showToast('File JSON không đúng định dạng!');
@@ -982,7 +1011,7 @@
       const rows = state.cards.map(c => [
         c.customer, c.product, c.qty || 1, c.date, c.days, c.price, c.fee, c.status
       ].join('\t')).join('\n');
-      navigator.clipboard.writeText(rows).then(() => showToast('Đã copy bảng! Mở Sheet và dán vào ô A3.'));
+      navigator.clipboard.writeText(rows).then(() => showToast('Đã copy bảng! Mở Sheet và dán vào dòng cuối.'));
     }
 
     function switchTab(tab) {
